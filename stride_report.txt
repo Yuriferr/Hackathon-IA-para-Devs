@@ -1,0 +1,88 @@
+RELATÓRIO DE ANÁLISE DE AMEAÇAS STRIDE (BASEADO EM ÍCONES)
+
+COMPONENTES IDENTIFICADOS:
+
+*   Ícone 1: Arquivo na Nuvem (Cloud Storage)
+*   Ícone 2: E-mail/Messaging
+*   Ícone 3: Rede Global (Internet)
+*   Ícone 4: Data Warehouse
+*   Ícone 5: Banco de Dados (escalabilidade)
+*   Ícone 6: Fogo (Destruição/Incêndio)
+*   Ícone 7: Banco de Dados (escalabilidade)
+*   Ícone 8: Nuvem com lupa (Cloud Auditing)
+*   Ícone 9: Chave em Cartão (Segurança/Autenticação)
+*   Ícone 10: Cadeado (Segurança/Criptografia)
+*   Ícone 11: Pentágono (Monitoramento)
+*   Ícone 12: Processador/Chip
+*   Ícone 13: Nuvem com Firewall
+*   Ícone 14: Processador/Chip
+*   Ícone 15: Cadeado (Segurança/Criptografia)
+*   Ícone 16: Processador/Chip
+*   Ícone 17: Escudo com Plus (Segurança Adicional)
+*   Ícone 18: Processador/Chip
+*   Ícone 19: Tráfego de Dados/Conexão
+*   Ícone 20: Cadeado (Segurança/Criptografia)
+*   Ícone 21: Tráfego de Dados/Conexão
+*   Ícone 22: Estrutura de Rede/Hierarquia
+*   Ícone 23: Nuvem
+*   Ícone 24: Usuários/Grupo de Usuários
+*   Ícone 25: Cadeado (Segurança/Criptografia)
+*   Ícone 26: Estrutura de Rede/Hierarquia
+*   Ícone 27: Cadeado (Segurança/Criptografia)
+*   Ícone 28: Flag/Marcos
+*   Ícone 29: Banco de dados RDS (Amazon)
+*   Ícone 30: AWS (Amazon Web Services)
+*   Ícone 31: Estrutura de Rede/Hierarquia
+*   Ícone 32: Banco de dados RDS (Amazon)
+
+VISÃO GERAL DO SISTEMA (Inferida)
+
+Com base nos componentes identificados, o sistema parece ser uma aplicação hospedada na nuvem AWS (Amazon Web Services). Essa aplicação faz uso de armazenamento em nuvem, banco de dados gerenciado por RDS, funcionalidades de e-mail/messaging e é acessada por vários usuários através da internet. Há também um foco em segurança, indicado pelos ícones de firewall, criptografia e autenticação forte. A arquitetura parece envolver data warehouses e sistemas de monitoramento contínuo. Existe uma complexa estrutura de rede organizando os componentes.
+
+AMEAÇAS IDENTIFICADAS (STRIDE)
+
+Categoria: Spoofing
+Componente Afetado: Usuários/Autenticação
+Descrição: Um atacante pode se passar por um usuário legítimo, obtendo acesso não autorizado aos dados e funcionalidades do sistema. Isso pode ocorrer através de roubo de credenciais ou exploração de vulnerabilidades no sistema de autenticação.
+Mitigação: Implementar autenticação multi-fator (MFA), garantir senhas fortes, monitorar tentativas de login suspeitas e usar certificados digitais.
+
+--------------------------------------------------
+
+Categoria: Tampering
+Componente Afetado: Bancos de Dados RDS, Arquivos armazenados na Nuvem
+Descrição: Um atacante pode modificar dados nos bancos de dados ou arquivos armazenados na nuvem, comprometendo a integridade das informações. Isso pode ocorrer com a exploração de falhas de acesso ou de injeção de código malicioso.
+Mitigação: Implementar controle de acesso estrito (RBAC - Role-Based Access Control), auditoria de alterações, backups regulares e criptografia dos dados em repouso e em trânsito.
+
+--------------------------------------------------
+
+Categoria: Repudiation
+Componente Afetado: Tráfego de rede
+Descrição: Um usuário malicioso pode realizar ações no sistema e negar sua responsabilidade por elas. Falta de auditoria e rastreamento adequados tornam difícil comprovar a autoria das ações.
+Mitigação: Implementar um sistema de auditoria abrangente que registre todas as ações dos usuários, utilize logs centralizados, retenção de logs por um período adequado e assinatura digital para garantir a não-repudiação.
+
+--------------------------------------------------
+
+Categoria: Information Disclosure
+Componente Afetado: Bancos de Dados RDS, Arquivos armazenados na Nuvem, Tráfego de rede
+Descrição: Um atacante pode obter acesso não autorizado a informações confidenciais armazenadas nos bancos de dados, nos arquivos ou transmitidas pela rede. Isso pode ser causado por vulnerabilidades no sistema, falta de criptografia ou configuração inadequada de privilégios.
+Mitigação: Criptografar os dados em repouso e em trânsito, implementar políticas de controle de acesso (Least Privilege), realizar testes de penetração regulares para identificar vulnerabilidades e manter o software atualizado.
+
+--------------------------------------------------
+
+Categoria: Denial of Service
+Componente Afetado: Servidores AWS, Banco de Dados, Rede
+Descrição: Um atacante pode sobrecarregar o sistema, tornando-o indisponível para usuários legítimos. Isso pode ocorrer através de ataques DDoS (Distributed Denial of Service) ou exploração de vulnerabilidades que consomem recursos excessivos.
+Mitigação: Implementar proteção contra ataques DDoS (e.g., AWS Shield), configurar auto scaling nos servidores, otimizar o código para evitar consumo excessivo de recursos e monitorar continuamente o desempenho do sistema.
+
+--------------------------------------------------
+
+Categoria: Elevation of Privilege
+Componente Afetado: Credenciais de Admin
+Descrição: Um atacante pode obter acesso com privilégios mais altos do que o autorizado, permitindo que eles realizem ações que não deveriam ser capazes de fazer.
+Mitigação: Implementar o princípio do menor privilégio (Least Privilege), usar contas separadas para tarefas administrativas, monitorar atividades privilegiadas, revisar permissões de acesso e implementar PAM (Privileged Access Management).
+
+--------------------------------------------------
+
+CONCLUSÃO
+
+A análise STRIDE revelou várias ameaças potenciais ao sistema. As mitigações propostas visam fortalecer a segurança em diferentes aspectos, como autenticação, integridade dos dados, confidencialidade e disponibilidade. A implementação dessas medidas ajudará a reduzir o risco de ataques bem-sucedidos e proteger os ativos críticos do sistema. A modelagem de ameaças deve ser um processo contínuo, e a análise deve ser revisada e atualizada regularmente para refletir mudanças no ambiente de ameaças e na arquitetura do sistema.

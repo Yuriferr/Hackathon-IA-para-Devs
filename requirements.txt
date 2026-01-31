@@ -3,3 +3,7 @@ opencv-python
 PyYAML
 Pillow
 tqdm
+python-dotenv
+google-generativeai
+easyocr
+openai
