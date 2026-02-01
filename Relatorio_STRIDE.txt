@@ -1,0 +1,72 @@
+## Relatório de Modelagem de Ameaças (STRIDE) - SEI/SIP na AWS
+
+**Componentes Identificados:**
+
+*   **Usuários SEI:** Representam os utilizadores finais do sistema.
+*   **AWS Cloud:** Ambiente de nuvem AWS onde a aplicação reside.
+*   **Região AWS (sa-east-1, São Paulo):** Localização geográfica da infraestrutura.
+*   **Virtual Private Cloud (VPC):** Rede privada isolada dentro da AWS.
+*   **Availability Zones (A, B, C):** Zonas de disponibilidade dentro da região.
+*   **Public Subnets:** Sub-redes acessíveis pela internet.
+*   **Private Subnets:** Sub-redes não acessíveis diretamente pela internet.
+*   **Application Load Balancers:** Distribuem o tráfego entre os servidores SEI/SIP.
+*   **SEI/SIP (Servidores):** Servidores da aplicação principal.
+*   **Amazon Elastic File System (EFS):** Sistema de arquivos de rede.
+*   **Amazon RDS (Primary/Secondary):** Banco de dados relacional.
+*   **Amazon ElastiCache (memcached):** Serviço de cache em memória.
+*   **Solr:** Plataforma de pesquisa.
+*   **Auto Scaling (API Server):** Escalabilidade automática dos servidores.
+*   **AWS Shield:** Proteção contra ataques DDoS.
+*   **Amazon CloudFront:** CDN (Content Delivery Network).
+*   **AWS WAF:** Firewall de aplicação web.
+*   **AWS CloudTrail:** Serviço de auditoria das ações na AWS.
+*   **AWS Key Management Service (KMS):** Serviço de gerenciamento de chaves de criptografia.
+*   **AWS Backup:** Serviço de backup de dados.
+*   **Amazon CloudWatch:** Serviço de monitoramento do ambiente.
+*   **Amazon Simple Email Service (SES):** Serviço de envio de e-mails.
+
+**Análise STRIDE:**
+
+*   **Spoofing (Falsificação):**
+    *   **Ameaça:** Um atacante pode se passar por um usuário autenticado ou por um servidor legítimo, usando credenciais roubadas ou explorando vulnerabilidades.
+    *   **Mitigações:** Impelementar autenticação multifator (MFA) para usuários. Utilize certificados TLS/SSL para autenticar servidores e garantir a confidencialidade das comunicações.
+
+*   **Tampering (Adulteração):**
+    *   **Ameaça:** Um atacante pode modificar dados em trânsito ou em repouso, comprometendo a integridade do sistema.
+    *   **Mitigações:** Utilize assinaturas digitais para garantir a integridade dos dados. Implemente controles de acesso rigorosos para evitar modificações não autorizadas aos dados.
+
+*   **Repudiation (Repúdio):**
+    *   **Ameaça:** Um usuário pode negar ter realizado uma ação, tornando difícil rastrear e responsabilizar ações maliciosas.
+    *   **Mitigações:** Implemente logging abrangente (utilize AWS CloudTrail) para registrar todas as ações relevantes. Utilize assinaturas digitais nas ações importantes.
+
+*   **Information Disclosure (Divulgação de Informações):**
+    *   **Ameaça:** Dados confidenciais podem ser expostos a usuários não autorizados, seja por meio de acesso não autorizado, erros de configuração ou vulnerabilidades no código.
+    *   **Mitigações:** Implemente criptografia para dados em repouso (usando KMS) e em trânsito (TLS/SSL). Utilize controles de acesso baseados no princípio do menor privilégio.
+
+*   **Denial of Service (Negação de Serviço):**
+    *   **Ameaça:** Um atacante pode sobrecarregar o sistema com tráfego malicioso, tornando-o indisponível para usuários legítimos.
+    *   **Mitigações:** Utilize AWS Shield para proteção contra ataques DDoS. Implemente mecanismos de limitação de taxa (rate limiting) e monitoramento de tráfego (com CloudWatch).
+
+*   **Elevation of Privilege (Elevação de Privilégio):**
+    *   **Ameaça:** Um atacante pode explorar vulnerabilidades para obter acesso a funcionalidades e dados que não deveriam estar acessíveis.
+    *   **Mitigações:** Realize testes de segurança e análises de código regulares para identificar e corrigir vulnerabilidades. Implemente o modelo de segurança de defesa em profundidade. Utilize o principio do menor privilégio e atribua aos utilizadores apenas as permissões essenciais para realizarem o que querem.
+    *   **Ameaça:** Um atacante pode obter acesso a permissões de alto nível da conta da AWS.
+    *   **Mitigações:** Use IAM Roles para conceder o mínimo privilégio necessário para cada componente da aplicação.
+
+**Mitigações Recomendadas (Resumidas):**
+
+*   Implementar autenticação multifator (MFA).
+*   Usar certificados TLS/SSL.
+*   Assinaturas digitais para integridade de dados.
+*   Logging abrangente (AWS CloudTrail).
+*   Criptografia (KMS e TLS/SSL).
+*   Controles de acesso baseados no menor privilégio.
+*   AWS Shield para proteção DDoS.
+*   Limitação de taxa (rate limiting).
+*   Análise de código e testes de segurança regulares.
+*   Monitoramento contínuo (CloudWatch).
+*   Controle de acesso robusto aos recursos da AWS (IAM Roles).
+*   Utilizar AWS WAF para proteção Web.
+*   Automatizar patches de segurança e atualizações.
+*   Auditoria regular das configurações de segurança da AWS.
+*   Implemente um sistema de detecção de intrusão.

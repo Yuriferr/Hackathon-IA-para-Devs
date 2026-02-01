@@ -1,192 +1,168 @@
 import os
-import cv2
+import sys
 import base64
-import numpy as np
+import json
+import requests
+import pytesseract
+from PIL import Image
 from ultralytics import YOLO
 from dotenv import load_dotenv
-from openai import OpenAI
 
-# Load environment variables
+# Carrega variáveis de ambiente (.env)
 load_dotenv()
 
-# Configure OpenRouter (via OpenAI SDK)
-API_KEY = os.getenv("OPENROUTER_API_KEY")
-if not API_KEY:
-    raise ValueError("OPENROUTER_API_KEY not found in .env file")
+# --- Configuração do Caminho do Tesseract (Caso necessário, descomente e ajuste) ---
+# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=API_KEY,
-)
-
-def encode_cv2_image(cv2_img):
-    """Encodes a CV2 image (numpy array) to base64 string."""
-    _, buffer = cv2.imencode('.jpg', cv2_img)
-    return base64.b64encode(buffer).decode('utf-8')
-
-def detect_and_crop_components(image_path, model_path, conf_threshold=0.75):
+def extract_icons(img_path, model_path):
     """
-    Detects components using YOLO, CROPS them, and returns a list of base64 encoded images.
-    Returns: (list_of_base64_strings, count)
+    Função 1: Extrai ícones usando o modelo YOLO.
+    Retorna a lista de bounding boxes, pois o modelo só detecta a categoria genérica 'icon'.
     """
-    print(f"[INFO] Loading YOLO model from {model_path}...")
-    model = YOLO(model_path)
-    
-    print(f"[INFO] Predicting on {image_path} with conf > {conf_threshold}...")
-    # Load original image for cropping
-    original_img = cv2.imread(image_path)
-    if original_img is None:
-        raise ValueError(f"Could not load image from {image_path}")
-        
-    results = model(image_path, conf=conf_threshold, verbose=False)
-    
-    cropped_images_b64 = []
-    
-    for result in results:
-        boxes = result.boxes
-        for box in boxes:
-            # Get coordinates
-            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
-            
-            # Crop the icon
-            # Ensure coordinates are within bounds
-            h, w, _ = original_img.shape
-            x1, y1 = max(0, x1), max(0, y1)
-            x2, y2 = min(w, x2), min(h, y2)
-            
-            if x2 > x1 and y2 > y1:
-                crop = original_img[y1:y2, x1:x2]
-                
-                # Check if crop is valid
-                if crop.size > 0:
-                    b64_str = encode_cv2_image(crop)
-                    cropped_images_b64.append(b64_str)
-    
-    count = len(cropped_images_b64)
-    print(f"[INFO] Extracted {count} valid icon crops.")
-    return cropped_images_b64, count
-
-def analyze_stride_icons(icon_images_b64):
-    """
-    Sends MULTIPLE icon images to OpenRouter for identification and STRIDE.
-    """
-    print(f"[INFO] Sending {len(icon_images_b64)} icons to OpenRouter (google/gemini-2.0-flash-001)...")
-    
-    # Construct the message content
-    content_payload = [
-        {
-            "type": "text",
-            "text": f"""
-            Você é um Especialista em Segurança focado em Modelagem de Ameaças usando a metodologia STRIDE.
-            
-            Abaixo eu forneço **{len(icon_images_b64)} imagens recortadas** individualmente de um diagrama de sistema. Cada imagem contém UM único componente/ícone (ex: um servidor, um banco de dados, um usuário, um firewall, etc).
-            
-            **Sua Tarefa:**
-            1.  **IDENTIFICAÇÃO DE COMPONENTES**: Analise cada imagem individualmente e identifique qual tecnologia ou componente ela representa.
-            2.  **INFERÊNCIA DE ARQUITETURA**: Com base na lista de componentes identificados, tente deduzir qual seria a arquitetura provável desse sistema (ex: se você vê um "AWS Cloud" e um "EC2", é uma arquitetura AWS).
-            3.  **ANÁLISE STRIDE**: Realize uma análise de ameaças STRIDE para o sistema como um todo, considerando esses componentes.
-            4.  **MITIGAÇÃO**: Forneça mitigações para cada ameaça.
-            
-            Formate a saída como um relatório em CORPO DE TEXTO (não markdown):
-            
-            RELATÓRIO DE ANÁLISE DE AMEAÇAS STRIDE (BASEADO EM ÍCONES)
-            
-            COMPONENTES IDENTIFICADOS:
-            - Ícone 1: [O que você vê?]
-            - Ícone 2: [O que você vê?]
-            ... (liste todos)
-            
-            VISÃO GERAL DO SISTEMA (Inferida)
-            ...
-            
-            AMEAÇAS IDENTIFICADAS (STRIDE)
-            Categoria: ...
-            Componente Afetado: ...
-            Descrição: ...
-            Mitigação: ...
-            --------------------------------------------------
-            
-            CONCLUSÃO
-            ...
-            """
-        }
-    ]
-    
-    # Append all images to the payload
-    for i, b64_img in enumerate(icon_images_b64):
-        content_payload.append({
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{b64_img}",
-                "detail": "low" # Use low detail to save tokens/latency if images are small crops
-            }
-        })
-    
+    print(f" > Iniciando detecção de ícones com YOLO...")
     try:
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "https://antigravity.ai", 
-                "X-Title": "Antigravity Agent", 
-            },
-            model="google/gemini-2.0-flash-001",
-            messages=[
-                {
-                    "role": "user",
-                    "content": content_payload
-                }
-            ]
-        )
-        return completion.choices[0].message.content
+        model = YOLO(model_path)
+        # Confiança 0.6 para filtrar falsos positivos
+        results = model(img_path, conf=0.6)
         
+        icons_data = []
+        for result in results:
+            for box in result.boxes:
+                # O modelo customizado retorna tudo como classe 'icon', então salvamos a posição
+                # para ajudar a LLM a localizar se necessário, ou apenas confirmar a existência.
+                icons_data.append({
+                    "box": box.xyxy[0].tolist(), # Coordenadas [x1, y1, x2, y2]
+                    "confidence": float(box.conf[0])
+                })
+        print(f" > {len(icons_data)} ícones detectados.")
+        return icons_data
     except Exception as e:
-        print(f"[ERROR] OpenRouter API Error: {e}")
-        # Identify if payload was too large
-        if "413" in str(e) or "too large" in str(e).lower():
-            print("[HINT] The payload with all images might be too large for the API.")
-        raise e
+        print(f"Erro no YOLO: {e}")
+        return []
+
+def extract_text(img_path):
+    """
+    Função 2: Extrai texto da imagem usando Pytesseract.
+    """
+    print(f" > Iniciando extração de texto com OCR...")
+    try:
+        image = Image.open(img_path)
+        # Tenta extrair em Português e Inglês
+        text = pytesseract.image_to_string(image, lang='por+eng')
+        print(f" > Texto extraído ({len(text)} caracteres).")
+        return text.strip()
+    except Exception as e:
+        print(f"Erro no Tesseract: {e}")
+        print("DICA: Verifique se o Tesseract-OCR está instalado no Windows e no PATH.")
+        return ""
+
+def generate_stride_report(img_path, icons, text):
+    """
+    Função 3: Envia a imagem + dados para a LLM gerar o relatório STRIDE.
+    Usa OpenRouter (Gemini 2.0 Flash) com capacidade visual para identificar os ícones.
+    """
+    print(f" > Enviando dados para a LLM (OpenRouter)...")
+    
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        print("ERRO: OPENROUTER_API_KEY não encontrada no .env")
+        return
+
+    # Codificar imagem em base64 para a LLM ver o diagrama e identificar os ícones
+    with open(img_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+
+    prompt = f"""
+    Atue como um Especialista em Segurança de Software.
+    
+    Analise o Diagrama de Fluxo de Dados (DFD) fornecido nesta imagem.
+    
+    METADADOS EXTRAÍDOS AUTOMATICAMENTE:
+    1. OCR (Texto Detectado):
+    {text}
+    
+    2. VISÃO COMPUTACIONAL:
+    Detectamos {len(icons)} elementos gráficos marcados como ícones/nós no diagrama.
+    Como o modelo de deteção apenas identifica que "existe um ícone", VOCÊ DEVE IDENTIFICAR VISUALMENTE O QUE CADA ÍCONE REPRESENTA (ex: Banco de Dados, Usuário, Celular, Nuvem AWS, Servidor, etc) olhando para a imagem.
+    
+    TAREFA:
+    Gere um Relatório de Modelagem de Ameaças usando a metodologia STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege).
+    
+    O relatório deve ser SIMPLES, DIRETO e em PORTUGUÊS.
+    Estrutura:
+    - Lista de Componentes Identificados (Baseado na sua visão e no texto).
+    - Análise STRIDE (Para cada letra, liste 1 ou 2 ameaças principais para este cenário).
+    - Mitigações Recomendadas (Resumidas).
+    """
+
+    # Payload para OpenRouter (Compatível com OpenAI Vision / Gemini Vision)
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "model": "google/gemini-2.0-flash-001", # Modelo multimodal rápido e barato
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{encoded_string}"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        result = response.json()
+        
+        if 'choices' in result:
+            content = result['choices'][0]['message']['content']
+            
+            # Salvar relatório
+            output_file = "Relatorio_STRIDE.txt"
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.write(content)
+            
+            print(f"\nRELATÓRIO GERADO COM SUCESSO!\nSalvo em: {output_file}")
+            print("-" * 30)
+            print(content)
+        else:
+            print(f"Erro na resposta da API: {result}")
+            
+    except Exception as e:
+        print(f"Erro na requisição LLM: {e}")
 
 def main():
-    # Configuration
-    MODEL_PATH = r"C:\Projetos\Organizar Icones\Treinamentos\yolov8n_icons\weights\best.pt"
-    # Default image
-    IMAGE_PATH = r"C:\Projetos\Organizar Icones\diagramas\aws_diagrama.png"
+    # Caminhos
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(base_dir, "Treinamentos", "yolov8n_icons", "weights", "best.pt")
+    img_path = os.path.join(base_dir, "diagramas", "aws_diagrama.png") # Ajuste conforme necessário
     
-    if not os.path.exists(MODEL_PATH):
-        print(f"[ERROR] Model not found at {MODEL_PATH}")
+    if not os.path.exists(model_path):
+        print("Modelo não encontrado.")
+        return
+    if not os.path.exists(img_path):
+        print("Imagem não encontrada.")
         return
 
-    if not os.path.exists(IMAGE_PATH):
-        print(f"[ERROR] Image not found at {IMAGE_PATH}")
-        return
-
-    try:
-        # 1. Detect and Crop
-        icon_images, count = detect_and_crop_components(IMAGE_PATH, MODEL_PATH, conf_threshold=0.75)
-        
-        if count == 0:
-            print("[WARN] No icons detected to analyze.")
-            return
-
-        # 2. Analyze Icons with LLM
-        # Limit to first 20 icons to avoid context window explosion in testing, if needed
-        # But user asked for "all", so let's try all.
-        print(f"[INFO] Analyzable components: {count}")
-        
-        report = analyze_stride_icons(icon_images)
-        
-        print("\n" + "="*50)
-        print("REPORT GENERATED")
-        print("="*50 + "\n")
-        print(report)
-        
-        # Save report
-        with open("stride_report.txt", "w", encoding="utf-8") as f:
-            f.write(report)
-        print(f"\n[INFO] Report saved to stride_report.txt")
-        
-    except Exception:
-        import traceback
-        traceback.print_exc()
+    # 1. Extrair Ícones
+    icons = extract_icons(img_path, model_path)
+    
+    # 2. Extrair Texto
+    text = extract_text(img_path)
+    
+    # 3. Gerar Relatório
+    generate_stride_report(img_path, icons, text)
 
 if __name__ == "__main__":
     main()
