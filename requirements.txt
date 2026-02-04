@@ -5,3 +5,6 @@ pytesseract
 requests
 PyYAML
 tqdm
+fastapi
+uvicorn
+python-multipart

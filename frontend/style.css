@@ -1,0 +1,221 @@
+:root {
+    --primary-color: #6366f1;
+    --primary-hover: #4f46e5;
+    --text-color: #334155;
+    --bg-color: #f8fafc;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    overflow: hidden;
+    /* App-like feel */
+}
+
+/* --- Animated Background Blobs --- */
+.background-blobs {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.6;
+    will-change: transform;
+    animation: float 25s infinite ease-in-out;
+}
+
+.blob-1 {
+    width: 500px;
+    height: 500px;
+    background-color: #ffdde1;
+    /* Soft Red */
+    top: -10%;
+    left: -10%;
+}
+
+.blob-2 {
+    width: 600px;
+    height: 600px;
+    background-color: #e0e7ff;
+    /* Soft Indigo */
+    bottom: -10%;
+    right: -10%;
+    animation-delay: 5s;
+}
+
+.blob-3 {
+    width: 400px;
+    height: 400px;
+    background-color: #fff7ed;
+    /* Soft Orange */
+    top: 30%;
+    left: 40%;
+    animation-delay: 10s;
+}
+
+@keyframes float {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    33% {
+        transform: translate(30px, -30px);
+    }
+
+    66% {
+        transform: translate(-30px, 30px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
+/* --- Glassmorphism Custom Utilities --- */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.input-bar-glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* --- Chat Bubbles --- */
+.message-bubble {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.message-bubble.bot {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-bottom-left-radius: 4px !important;
+    color: var(--text-color);
+}
+
+.message-bubble.user {
+    background-color: #e0e7ff;
+    color: #1e1b4b;
+    /* Dark indigo text */
+    border-bottom-right-radius: 4px !important;
+}
+
+/* Markdown Content Styling */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+    margin-top: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.markdown-body strong {
+    color: var(--primary-color);
+}
+
+.markdown-body ul {
+    padding-left: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.markdown-body table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+}
+
+.markdown-body th,
+.markdown-body td {
+    padding: 0.5rem;
+    border: 1px solid #cbd5e1;
+}
+
+.markdown-body th {
+    background-color: #f1f5f9;
+}
+
+/* --- Animations --- */
+.fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Typing Indicator */
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    display: inline-block;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.5);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.8);
+}

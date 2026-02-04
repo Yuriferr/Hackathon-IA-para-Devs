@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise STRIDE</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Ionicons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <!-- Marked -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body class="d-flex flex-column vh-100">
+
+    <!-- Background Blobs -->
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="text-center py-4">
+        <h1 class="h3 fw-medium mb-1" style="color: #1e293b; letter-spacing: -0.5px;">Security Assistant</h1>
+        <p class="text-secondary small mb-0">Envie um diagrama para análise STRIDE</p>
+    </header>
+
+    <!-- Chat Area -->
+    <div class="container-fluid flex-grow-1 overflow-auto px-4 pb-5" id="chatArea">
+        <div class="container" style="max-width: 900px;">
+
+            <!-- Bot Welcome Message -->
+            <div class="d-flex justify-content-start mb-4 fade-in-up">
+                <div class="message-bubble bot p-3 rounded-4 shadow-sm glass-panel" style="max-width: 85%;">
+                    Olá! Sou seu assistente de segurança. Por favor, envie uma imagem do diagrama de fluxo de dados
+                    (DFD) que você gostaria de analisar.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Input Area (Fixed Bottom) -->
+    <div class="container-fluid py-4" style="z-index: 10;">
+        <div class="d-flex justify-content-center">
+            <!-- Glass Input Bar -->
+            <div class="input-bar-glass rounded-pill d-flex align-items-center px-2 py-2 w-100"
+                style="max-width: 700px; transition: transform 0.2s;">
+
+                <!-- Hidden File Input -->
+                <input type="file" id="fileInput" accept="image/*" class="d-none">
+
+                <!-- Attach Button -->
+                <button type="button" id="attachBtn"
+                    class="btn btn-light rounded-circle d-flex align-items-center justify-content-center border-0 text-secondary"
+                    style="width: 45px; height: 45px; margin-right: 10px;" title="Anexar Imagem">
+                    <ion-icon name="image-outline" style="font-size: 1.4rem;"></ion-icon>
+                </button>
+
+                <!-- Preview / Text -->
+                <div class="flex-grow-1 px-2 text-truncate" id="previewArea" style="cursor: pointer; color: #94a3b8;">
+                    <span id="placeholderText">Selecione um diagrama...</span>
+                </div>
+
+                <!-- Send Button (Hidden initially) -->
+                <button type="button" id="sendBtn"
+                    class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm d-none"
+                    style="width: 45px; height: 45px; background-color: #6366f1;" title="Enviar">
+                    <ion-icon name="send" style="font-size: 1.2rem;"></ion-icon>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logic -->
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const attachBtn = document.getElementById('attachBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatArea = document.getElementById('chatArea').querySelector('.container'); // Append inside the inner container
+        const chatAreaScroll = document.getElementById('chatArea'); // Scroll this one
+        const previewArea = document.getElementById('previewArea');
+        const placeholderText = document.getElementById('placeholderText');
+
+        let selectedFile = null;
+
+        // --- Event Listeners ---
+        attachBtn.addEventListener('click', () => fileInput.click());
+        previewArea.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                placeholderText.textContent = selectedFile.name;
+                placeholderText.style.color = '#333';
+                placeholderText.classList.add('fw-medium');
+                sendBtn.classList.remove('d-none');
+                sendBtn.classList.add('fade-in-up');
+            }
+        });
+
+        sendBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            sendMessage();
+        });
+
+        async function sendMessage() {
+            if (!selectedFile) return;
+
+            // 1. Add User Message (UI)
+            addUserMessage(selectedFile);
+
+            // 2. Clear Input
+            const fileToSend = selectedFile;
+            selectedFile = null;
+            fileInput.value = "";
+            placeholderText.textContent = "Selecione um diagrama...";
+            placeholderText.style.color = '#94a3b8';
+            placeholderText.classList.remove('fw-medium');
+            sendBtn.classList.add('d-none');
+
+            // 3. Loading UI
+            const loadingId = addLoadingMessage();
+
+            // 4. API Request
+            try {
+                const formData = new FormData();
+                formData.append("file", fileToSend);
+
+                const response = await fetch("http://localhost:8001/analyze", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error("Erro na análise");
+                const data = await response.json();
+
+                // 5. Success
+                removeMessage(loadingId);
+                addBotMessage(data.report);
+
+            } catch (error) {
+                removeMessage(loadingId);
+                addBotMessage("**Erro:** Não foi possível analisar o diagrama. Verifique a conexão com o servidor (Porta 8001).");
+                console.error(error);
+            }
+        }
+
+        // --- Helper Functions ---
+
+        function scrollToBottom() {
+            chatAreaScroll.scrollTo({
+                top: chatAreaScroll.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        function addUserMessage(file) {
+            // Container
+            const row = document.createElement('div');
+            row.className = 'd-flex justify-content-end mb-4 fade-in-up';
+
+            // Bubble
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble user p-2 rounded-4 shadow-sm';
+            bubble.style.cssText = 'max-width: 85%;';
+
+            // Image
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.className = 'img-fluid rounded-3';
+            img.style.maxHeight = '300px';
+            img.onload = () => URL.revokeObjectURL(img.src);
+
+            bubble.appendChild(img);
+            row.appendChild(bubble);
+            chatArea.appendChild(row);
+            scrollToBottom();
+        }
+
+        function addBotMessage(markdownText) {
+            const row = document.createElement('div');
+            row.className = 'd-flex justify-content-start mb-4 fade-in-up';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble bot p-4 rounded-4 shadow-sm glass-panel markdown-body';
+            bubble.style.maxWidth = '85%';
+            bubble.innerHTML = marked.parse(markdownText);
+
+            row.appendChild(bubble);
+            chatArea.appendChild(row);
+            scrollToBottom();
+        }
+
+        function addLoadingMessage() {
+            const id = 'loading-' + Date.now();
+
+            const row = document.createElement('div');
+            row.className = 'd-flex justify-content-start mb-4 fade-in-up';
+            row.id = id;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble bot p-3 rounded-4 shadow-sm glass-panel d-flex align-items-center gap-3';
+
+            // Typing Animation
+            const indicator = document.createElement('div');
+            indicator.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+
+            // Status Text
+            const statusText = document.createElement('span');
+            statusText.className = 'text-primary fw-medium small';
+            statusText.id = `status-text-${id}`;
+            statusText.textContent = "Iniciando análise...";
+
+            bubble.appendChild(indicator);
+            bubble.appendChild(statusText);
+            row.appendChild(bubble);
+            chatArea.appendChild(row);
+            scrollToBottom();
+
+            // Text Cycler
+            const phrases = [
+                "Extraindo ícones e nós...",
+                "Lendo textos do diagrama...",
+                "Identificando fluxos de dados...",
+                "Analisando segurança (LLM)...",
+                "Gerando relatório STRIDE..."
+            ];
+            let i = 0;
+            const interval = setInterval(() => {
+                i = (i + 1) % phrases.length;
+                const el = document.getElementById(`status-text-${id}`);
+                if (el) el.textContent = phrases[i];
+                else clearInterval(interval);
+            }, 2500);
+
+            return id;
+        }
+
+        function removeMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+    </script>
+</body>
+
+</html>
