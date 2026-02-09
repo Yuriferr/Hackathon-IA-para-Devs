@@ -1,35 +1,25 @@
 import os
-import sys
 import base64
 import json
 import requests
-import pytesseract
 import shutil
-from PIL import Image
+import tempfile
+import uvicorn
 from ultralytics import YOLO
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import uvicorn
-import tempfile
 
 # Carrega variáveis de ambiente (.env)
 load_dotenv()
 
-# --- Configuração do Caminho do Tesseract (Caso necessário, descomente e ajuste) ---
-# --- Configuração do Caminho do Tesseract (Opcional - O código agora usa Fallback para LLM) ---
-# Se você tiver o Tesseract instalado, aponte o caminho aqui:
-tesseract_path = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-if os.path.exists(tesseract_path):
-    pytesseract.pytesseract.tesseract_cmd = tesseract_path
-
 app = FastAPI(title="Diagram Analysis API")
 
-# Configurar CORS para permitir que o frontend acesse a API
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especifique a origem do frontend
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,20 +27,21 @@ app.add_middleware(
 
 def extract_icons(img_path, model_path):
     """
-    Função 1: Extrai ícones usando o modelo YOLO.
-    Retorna a lista de bounding boxes.
+    Extrai ícones usando o modelo YOLO local.
     """
     print(f" > Iniciando detecção de ícones com YOLO...")
     try:
         model = YOLO(model_path)
-        # Confiança 0.6 para filtrar falsos positivos
         results = model(img_path, conf=0.6)
         
         icons_data = []
         for result in results:
             for box in result.boxes:
+                class_id = int(box.cls[0])
+                class_name = model.names[class_id]
                 icons_data.append({
-                    "box": box.xyxy[0].tolist(), # Coordenadas [x1, y1, x2, y2]
+                    "object_type": class_name,
+                    "box": box.xyxy[0].tolist(),
                     "confidence": float(box.conf[0])
                 })
         print(f" > {len(icons_data)} ícones detectados.")
@@ -59,71 +50,74 @@ def extract_icons(img_path, model_path):
         print(f"Erro no YOLO: {e}")
         return []
 
-def extract_text(img_path):
+def generate_stride_analysis(img_path, icons, metamodel_content=None):
     """
-    Função 2: Extrai texto da imagem usando Pytesseract.
+    Gera a análise STRIDE completa usando a LLM (Multimodal).
+    Lê o texto da imagem e correlaciona com os ícones detectados em uma única chamada.
+    Se houver metamodelo, usa para verificar conformidade.
     """
-    print(f" > Iniciando extração de texto (OCR)...")
-    try:
-        image = Image.open(img_path)
-        # Tenta extrair em Português e Inglês
-        text = pytesseract.image_to_string(image, lang='por+eng')
-        print(f" > Texto extraído ({len(text)} caracteres).")
-        return text.strip()
-    except Exception:
-        print(f" > Aviso: OCR local (Tesseract) indisponível. A leitura será feita pela LLM.")
-        return ""
-
-def generate_stride_report_content(img_path, icons, text):
-    """
-    Função 3: Envia a imagem + dados para a LLM gerar o relatório STRIDE.
-    Retorna o conteúdo do relatório como string.
-    """
-    print(f" > Enviando dados para a LLM (OpenRouter)...")
+    print(f" > Enviando dados para análise STRIDE (LLM)...")
     
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        return "ERRO: OPENROUTER_API_KEY não encontrada no .env"
+        return "ERRO: OPENROUTER_API_KEY não configurada."
 
-    # Codificar imagem em base64 para a LLM
     with open(img_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
 
+    icons_json = json.dumps(icons, indent=2)
+
+    # Construção do Contexto do Metamodelo
+    metamodel_instruction = ""
+    if metamodel_content:
+        metamodel_instruction = f"""
+        
+        ### METAMODELO DE REFERÊNCIA (CONFORMIDADE):
+        O usuário forneceu um padrão (Metamodelo) que deve ser seguido.
+        
+        CONTEÚDO DO METAMODELO:
+        ---
+        {metamodel_content}
+        ---
+        
+        DIRETRIZES DE CONFORMIDADE:
+        1. Compare o diagrama atual com o Metamodelo acima.
+        2. Destaque o que está EM CONFORMIDADE (segue as regras).
+        3. Aponte claramente desvios ou violações do metamodelo.
+        """
+
+    # Prompt otimizado e econômico
     prompt = f"""
-    Atue como um Especialista Sênior em Segurança de Aplicações (AppSec).
-    
-    CONTEXTO:
-    Você receberá um Diagrama de Fluxo de Dados (DFD). Sua missão é identificar vulnerabilidades de segurança utilizando a metodologia STRIDE.
-    
-    DADOS DE ENTRADA (Auxiliares):
-    - Texto lido via OCR: {text if text else "Indisponível (Realize a leitura visualmente da imagem)"}
-    - Elementos gráficos detectados: {len(icons)} (Use estes boxes apenas como dica de onde olhar, mas identifique o componente visualmente).
-    
-    DIRETRIZES GERAIS:
-    1. Identifique corretamente os limites de confiança (Trust Boundaries).
-    2. Analise o fluxo dos dados entre os componentes.
-    3. Seja técnico, mas conciso.
-    
-    FORMATO DE SAÍDA OBRIGATÓRIO (MARKDOWN):
+    Atue como Especialista em AppSec. Analise a imagem do Diagrama de Fluxo de Dados (DFD).
+
+    DADOS TÉCNICOS:
+    - Identifique todos os ícones e o que eles representam (Bounding Boxes): {icons_json}
+    - Extraia os textos da imagem original em anexo.
+    {metamodel_instruction}
+
+    TAREFA:
+    1. Identifique todo o texto presente na imagem (OCR mental).
+    2. Combine o texto com os ícones visuais para mapear os componentes (Entidades, Processos, Armazenamento, Fluxos).
+    3. Analise a CONFORMIDADE com o Metamodelo (se fornecido).
+    4. Gere um relatório de ameaças STRIDE.
+
+    SAÍDA OBRIGATÓRIA (Markdown):
     
     ## 1. Mapeamento do Diagrama
-    *Listagem breve do que foi identificado na imagem.*
-    * **Componentes**: (Ex: Banco de Dados, Web App, Usuário)
-    * **Fluxos de Dados**: (Ex: HTTPS Request, Query SQL)
-    * **Limites de Confiança**: (Ex: Internet vs VPC)
+    Liste os componentes identificados.
 
-    ## 2. Matriz de Ameaças (STRIDE)
-    *Gere obrigatoriamente uma tabela com as principais ameaças.*
-    
-    | Componente | Categoria (STRIDE) | Descrição da Ameaça | Impacto |
+    ## 2. Análise de Conformidade (Metamodelo)
+    *Se houver metamodelo, cite o que está correto e o que desvia.*
+    * **Em Conformidade**: ...
+    * **Desvios/Atenção**: ...
+
+    ## 3. Matriz de Ameaças (STRIDE)
+    | Componente | STRIDE | Ameaça Identificada | Impacto |
     | :--- | :---: | :--- | :--- |
-    | (Nome do Componente) | (S/T/R/I/D/E) | (Explicação breve do ataque) | (Ex: Vazamento de dados) |
-    *(Adicione quantas linhas forem necessárias para cobrir as ameaças críticas)*
+    | ... | ... | ... | ... |
 
-    ## 3. Plano de Mitigação Prioritário
-    *Liste as 3 a 5 correções mais urgentes baseadas na matriz acima.*
-    1. **[Mitigação para X]**: Descrição da ação corretiva.
-    2. ...
+    ## 4. Plano de Mitigação
+    Liste as 3-5 correções prioritárias.
     """
 
     url = "https://openrouter.ai/api/v1/chat/completions"
@@ -156,51 +150,60 @@ def generate_stride_report_content(img_path, icons, text):
         result = response.json()
         
         if 'choices' in result:
-            content = result['choices'][0]['message']['content']
-            return content
+            return result['choices'][0]['message']['content']
         else:
-            return f"Erro na resposta da API: {result}"
+            return f"Erro na API: {result}"
             
     except Exception as e:
         return f"Erro na requisição LLM: {e}"
 
 @app.post("/analyze")
-def analyze_diagram(file: UploadFile = File(...)):
+async def analyze_diagram(file: UploadFile = File(...), metamodel: UploadFile = File(None)):
     temp_filename = None
     try:
-        # 1. Salvar arquivo em diretório temporário seguro (evita reload do frontend se estiver assistindo raiz)
-        # delete=False pois precisamos passar o caminho para o YOLO/Tesseract
+        # 0. Processar Metamodelo (se houver)
+        metamodel_content = None
+        if metamodel:
+            try:
+                content = await metamodel.read()
+                metamodel_content = content.decode("utf-8")
+                print(" > Metamodelo recebido e lido.")
+            except Exception as e:
+                print(f" > Erro ao ler metamodelo: {e}")
+                # Segue sem metamodelo se der erro na leitura
+
+        # 1. Salvar arquivo temporário
         suffix = os.path.splitext(file.filename)[1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             shutil.copyfileobj(file.file, tmp)
             temp_filename = tmp.name
         
-        # 2. Caminhos
+        # 2. Configuração
         base_dir = os.path.dirname(os.path.abspath(__file__))
         model_path = os.path.join(base_dir, "Treinamentos", "yolov8n_icons", "weights", "best.pt")
         
         if not os.path.exists(model_path):
             raise HTTPException(status_code=500, detail="Modelo YOLO não encontrado.")
 
-        # 3. Processamento
+        # 3. Execução Otimizada
+        # A: Detectar ícones localmente
         icons = extract_icons(temp_filename, model_path)
-        text = extract_text(temp_filename)
-        report = generate_stride_report_content(temp_filename, icons, text)
+        
+        # B: Análise completa (OCR + STRIDE + COMPLIANCE)
+        report = generate_stride_analysis(temp_filename, icons, metamodel_content)
         
         return JSONResponse(content={"report": report})
         
     except Exception as e:
-        print(f"Erro no processamento: {e}")
+        print(f"Erro: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
         
     finally:
-        # 4. Limpeza garantida
         if temp_filename and os.path.exists(temp_filename):
             try:
                 os.remove(temp_filename)
-            except Exception as cleanup_error:
-                print(f"Erro ao remover arquivo temporário: {cleanup_error}")
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)
-

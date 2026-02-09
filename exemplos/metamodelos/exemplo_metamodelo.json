@@ -1,0 +1,46 @@
+{
+    "nome": "Padrão Corporativo de Segurança - Web App",
+    "versao": "2.1",
+    "descricao": "Este metamodelo define as regras obrigatórias de segurança para arquiteturas de aplicações web.",
+    "regras_de_conformidade": [
+        {
+            "id": "SEC-01",
+            "categoria": "Autenticação",
+            "regra": "Todo acesso externo deve passar por um Gateway de API ou Firewall de Aplicação (WAF).",
+            "componentes_afetados": [
+                "Entidade Externa",
+                "Processo"
+            ],
+            "severidade": "Alta"
+        },
+        {
+            "id": "SEC-02",
+            "categoria": "Armazenamento de Dados",
+            "regra": "Bancos de Dados nunca devem ser expostos diretamente à internet (Entidade Externa). Devem estar isolados atrás de um serviço de backend.",
+            "componentes_afetados": [
+                "Armazenamento de Dados",
+                "Entidade Externa"
+            ],
+            "severidade": "Crítica"
+        },
+        {
+            "id": "SEC-03",
+            "categoria": "Criptografia em Trânsito",
+            "regra": "Todos os fluxos de dados que atravessam fronteiras de confiança (Trust Boundaries) devem utilizar protocolos seguros (HTTPS/TLS).",
+            "componentes_afetados": [
+                "Fluxo de Dados"
+            ],
+            "severidade": "Alta"
+        },
+        {
+            "id": "SEC-04",
+            "categoria": "Logs e Auditoria",
+            "regra": "Deve existir um componente centralizado para coleta de logs (ex: Servidor de Logs ou SIEM) conectado aos principais processos.",
+            "componentes_afetados": [
+                "Processo",
+                "Armazenamento de Dados"
+            ],
+            "severidade": "Média"
+        }
+    ]
+}

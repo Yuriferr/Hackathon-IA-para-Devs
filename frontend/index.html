@@ -47,15 +47,44 @@
                 <div class="message-bubble bot p-3 rounded-4 shadow-sm glass-panel" style="max-width: 85%;">
                     Olá! Sou seu assistente de segurança. Por favor, envie uma imagem do diagrama de fluxo de dados
                     (DFD) que você gostaria de analisar.
+                    <br><br>
+                    <small>Dica: Você pode anexar um <strong>Metamodelo</strong> (regras de conformidade) usando o botão
+                        no canto inferior direito.</small>
                 </div>
             </div>
 
         </div>
     </div>
 
+    <!-- Metamodel Fab (Floating Button) -->
+    <div class="position-fixed bottom-0 end-0 m-4 mb-5 pb-5" style="z-index: 20;">
+        <input type="file" id="metamodelInput" class="d-none" accept=".txt,.md,.json,.yaml">
+        <button id="metamodelBtn"
+            class="btn btn-warning rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+            style="width: 56px; height: 56px; transition: transform 0.2s;" title="Anexar Metamodelo (Regras)">
+            <ion-icon name="shield-checkmark-outline" style="font-size: 1.8rem; color: #fff;"></ion-icon>
+        </button>
+        <!-- Badge Indicator -->
+        <span id="metamodelBadge"
+            class="position-absolute top-0 start-100 translate-middle p-2 bg-success border border-light rounded-circle d-none">
+            <span class="visually-hidden">Metamodelo ativo</span>
+        </span>
+    </div>
+
     <!-- Input Area (Fixed Bottom) -->
     <div class="container-fluid py-4" style="z-index: 10;">
-        <div class="d-flex justify-content-center">
+        <div class="d-flex flex-column align-items-center">
+
+            <!-- Metamodel Status Chip -->
+            <div id="metamodelChip" class="mb-2 fade-in-up d-none">
+                <span class="badge rounded-pill bg-warning text-dark shadow-sm border border-warning-subtle px-3 py-2">
+                    <ion-icon name="document-text-outline" class="me-1" style="vertical-align: middle;"></ion-icon>
+                    Metamodelo: <span id="metamodelName">regras.txt</span>
+                    <ion-icon name="close-circle" id="removeMetamodel"
+                        style="cursor: pointer; vertical-align: middle; margin-left: 5px; font-size: 1.1em;"></ion-icon>
+                </span>
+            </div>
+
             <!-- Glass Input Bar -->
             <div class="input-bar-glass rounded-pill d-flex align-items-center px-2 py-2 w-100"
                 style="max-width: 700px; transition: transform 0.2s;">
@@ -90,14 +119,25 @@
         const fileInput = document.getElementById('fileInput');
         const attachBtn = document.getElementById('attachBtn');
         const sendBtn = document.getElementById('sendBtn');
-        const chatArea = document.getElementById('chatArea').querySelector('.container'); // Append inside the inner container
-        const chatAreaScroll = document.getElementById('chatArea'); // Scroll this one
+        const chatArea = document.getElementById('chatArea').querySelector('.container');
+        const chatAreaScroll = document.getElementById('chatArea');
         const previewArea = document.getElementById('previewArea');
         const placeholderText = document.getElementById('placeholderText');
 
+        // Metamodel Elements
+        const metamodelInput = document.getElementById('metamodelInput');
+        const metamodelBtn = document.getElementById('metamodelBtn');
+        const metamodelChip = document.getElementById('metamodelChip');
+        const metamodelName = document.getElementById('metamodelName');
+        const removeMetamodel = document.getElementById('removeMetamodel');
+        const metamodelBadge = document.getElementById('metamodelBadge');
+
         let selectedFile = null;
+        let selectedMetamodel = null;
 
         // --- Event Listeners ---
+
+        // Diagram Image
         attachBtn.addEventListener('click', () => fileInput.click());
         previewArea.addEventListener('click', () => fileInput.click());
 
@@ -112,6 +152,26 @@
             }
         });
 
+        // Metamodel
+        metamodelBtn.addEventListener('click', () => metamodelInput.click());
+
+        metamodelInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedMetamodel = e.target.files[0];
+                metamodelName.textContent = selectedMetamodel.name;
+                metamodelChip.classList.remove('d-none');
+                metamodelBadge.classList.remove('d-none'); // Badge on FAB
+            }
+        });
+
+        removeMetamodel.addEventListener('click', () => {
+            selectedMetamodel = null;
+            metamodelInput.value = "";
+            metamodelChip.classList.add('d-none');
+            metamodelBadge.classList.add('d-none');
+        });
+
+        // Send
         sendBtn.addEventListener('click', (e) => {
             e.preventDefault();
             sendMessage();
@@ -121,16 +181,29 @@
             if (!selectedFile) return;
 
             // 1. Add User Message (UI)
-            addUserMessage(selectedFile);
+            addUserMessage(selectedFile, selectedMetamodel);
 
             // 2. Clear Input
             const fileToSend = selectedFile;
+            const metamodelToSend = selectedMetamodel;
+
             selectedFile = null;
             fileInput.value = "";
             placeholderText.textContent = "Selecione um diagrama...";
             placeholderText.style.color = '#94a3b8';
             placeholderText.classList.remove('fw-medium');
             sendBtn.classList.add('d-none');
+
+            // Keep metamodel selected? Usually reset per request is safer to avoid confusion, 
+            // but for "compliance mode" users might want to keep it. 
+            // Let's reset it to be clean.
+            // selectedMetamodel = null;
+            // metamodelInput.value = "";
+            // metamodelChip.classList.add('d-none');
+            // metamodelBadge.classList.add('d-none');
+            // User requested "cherry on top", let's keep it persistent might be annoying if they forget.
+            // Let's NOT reset metamodel, assuming they want to test multiple diagrams against the same model.
+            // But let's clarify in logs.
 
             // 3. Loading UI
             const loadingId = addLoadingMessage();
@@ -139,6 +212,9 @@
             try {
                 const formData = new FormData();
                 formData.append("file", fileToSend);
+                if (metamodelToSend) {
+                    formData.append("metamodel", metamodelToSend);
+                }
 
                 const response = await fetch("http://localhost:8001/analyze", {
                     method: "POST",
@@ -168,10 +244,12 @@
             });
         }
 
-        function addUserMessage(file) {
+        function addUserMessage(file, metamodel) {
             // Container
             const row = document.createElement('div');
             row.className = 'd-flex justify-content-end mb-4 fade-in-up';
+            row.style.flexDirection = 'column';
+            row.style.alignItems = 'flex-end';
 
             // Bubble
             const bubble = document.createElement('div');
@@ -187,6 +265,15 @@
 
             bubble.appendChild(img);
             row.appendChild(bubble);
+
+            // Metamodel Tag if present
+            if (metamodel) {
+                const metaTag = document.createElement('div');
+                metaTag.className = 'mt-1 text-secondary small';
+                metaTag.innerHTML = `<ion-icon name="shield-checkmark"></ion-icon> Com Metamodelo: <strong>${metamodel.name}</strong>`;
+                row.appendChild(metaTag);
+            }
+
             chatArea.appendChild(row);
             scrollToBottom();
         }
@@ -237,10 +324,10 @@
 
             // Text Cycler
             const phrases = [
-                "Extraindo ícones e nós...",
-                "Lendo textos do diagrama...",
-                "Identificando fluxos de dados...",
-                "Analisando segurança (LLM)...",
+                "Lendo metamodelo...",
+                "Detectando ícones...",
+                "Interpretando fluxos...",
+                "Validando conformidade...",
                 "Gerando relatório STRIDE..."
             ];
             let i = 0;
@@ -249,7 +336,7 @@
                 const el = document.getElementById(`status-text-${id}`);
                 if (el) el.textContent = phrases[i];
                 else clearInterval(interval);
-            }, 2500);
+            }, 2000);
 
             return id;
         }
