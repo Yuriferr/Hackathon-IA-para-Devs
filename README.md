@@ -1,65 +1,94 @@
-# Automatic Threat Modeling (STRIDE)
+# 🛡️ Automated Threat Modeling with AI (STRIDE)
 
-Este projeto automatiza a criação de relatórios de modelagem de ameaças (Threat Modeling) usando a metodologia **STRIDE**. 
+Este projeto foi desenvolvido como um MVP para a **FIAP Software Security**, visando otimizar a análise de vulnerabilidades em arquiteturas de sistemas utilizando Inteligência Artificial.
 
-O sistema analisa imagens de Diagramas de Fluxo de Dados (DFD), detecta elementos visualmente e gera um relatório profissional de segurança.
+## 🎯 Objetivo do Desafio
 
-## 🚀 Funcionalidades
+A empresa tem como objetivo validar a viabilidade de uma nova funcionalidade: **realizar automaticamente a modelagem de ameaças baseada na metodologia STRIDE a partir de um diagrama de arquitetura de software (imagem).**
 
-- **Detecção de Ícones**: Utiliza um modelo **YOLOv8** treinado para localizar nós e componentes na imagem.
-- **Extração de Texto (OCR)**: Utiliza **Tesseract** para ler rótulos e anotações do diagrama.
-- **Análise com IA**: Envia os dados visuais + texto para uma LLM (via **OpenRouter**) que interpreta a arquitetura e gera o relatório STRIDE em Português.
+### Metas Alcançadas:
+*   ✅ **Interpretação Automática**: IA capaz de identificar componentes arquiteturais (usuários, servidores, bancos de dados, APIs, etc) em imagens.
+*   ✅ **Relatório STRIDE**: Geração automática de um relatório de ameaças categorizado.
+*   ✅ **Dataset & Treinamento**: Construção e anotação de um dataset próprio para treinar um modelo supervisionado (YOLO) focado em ícones de diagramas.
+*   ✅ **Sistema de Detecção**: API integrada que une Visão Computacional e LLMs para apontar vulnerabilidades e contramedidas.
 
-## 📋 Pré-requisitos
+---
 
-- Python 3.8+
-- [Tesseract-OCR](https://github.com/UB-Mannheim/tesseract/wiki) instalado no sistema (Windows).
-- Uma chave de API do [OpenRouter](https://openrouter.ai/).
+## 🚀 Diferenciais do Projeto (Extras)
 
-## 🛠️ Instalação
+Além dos requisitos básicos, este projeto implementou funcionalidades avançadas pensando no uso corporativo real:
 
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/seu-usuario/seu-projeto.git
-   cd seu-projeto
-   ```
+### 1. Modelo YOLO Customizado para Ícones
+Desenvolvemos e treinamos um modelo **YOLOv8** específico para detectar ícones de arquitetura (AWS, Azure, GCP, Kubernetes, etc). 
+*   *Vantagem*: Este modelo é modular e pode ser reutilizado em outros projetos de análise de diagramas, independente da geração de relatórios de segurança.
 
-2. Crie e ative um ambiente virtual:
-   ```bash
-   python -m venv venv
-   # Windows
-   .\venv\Scripts\activate
-   # Linux/Mac
-   source venv/bin/activate
-   ```
+### 2. Validação via Metamodelo (Compliance) 🍒
+Implementamos um recurso de "Cereja do Bolo": a capacidade de validar o diagrama contra um **Metamodelo Corporativo**.
+*   *Como funciona*: O usuário pode fazer upload de um arquivo de regras (ex: `politica_seguranca.json`).
+*   *Resultado*: A IA não apenas gera o STRIDE, mas cruza o diagrama com as regras da empresa, apontando conformidades e violações (ex: "Banco de dados exposto diretamente à internet viola a regra X").
 
-3. Instale as dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 3. API Simples e Direta (FastAPI)
+Uma arquitetura leve utilizando **FastAPI**, focada em ser fácil de implantar e integrar com outros sistemas de CI/CD ou dashboards de segurança existentes.
 
-4. Configure o arquivo `.env`:
-   Crie um arquivo `.env` na raiz e adicione sua chave.
-   ```env
-   OPENROUTER_API_KEY=sua_chave_aqui
-   ```
+---
 
-## ⚙️ Como Usar
+## 🛠️ Como Usar
 
-1. Coloque a imagem do seu diagrama na pasta `diagramas/` (ou ajuste o caminho no `main.py`).
-2. Execute o script principal:
-   ```bash
-   python main.py
-   ```
-3. O relatório será gerado na raiz do projeto com o nome `Relatorio_STRIDE.txt`.
+### Pré-requisitos
+*   Python 3.8+
+*   Chave de API configurada (OpenRouter/OpenAI/Gemini) no arquivo `.env`.
+
+### 1. Instalação e Configuração
+
+Clone o repositório e instale as dependências:
+
+```bash
+# Clone o projeto
+git clone [URL_DO_REPOSITORIO]
+cd "Organizar Icones"
+
+# Instale os requisitos
+pip install -r requirements.txt
+```
+
+Crie um arquivo `.env` na raiz do projeto:
+
+```env
+OPENROUTER_API_KEY=sua_chave_aqui
+```
+
+### 2. Executando a Aplicação
+
+Inicie o servidor da API:
+
+```bash
+python main.py
+```
+*O servidor iniciará em `http://localhost:8001`*
+
+### 3. Utilizando o Frontend
+
+1.  Abra o arquivo `frontend/index.html` em seu navegador.
+2.  **Upload do Diagrama**: Clique no botão de imagem e selecione seu DFD/Diagrama.
+3.  **Metamodelo (Opcional)**: Clique no botão flutuante (canto inferior direito) para anexar um arquivo de regras (ex: `exemplos/metamodelos/exemplo_metamodelo.json`).
+4.  **Enviar**: Clique em enviar para receber a análise completa.
+
+---
 
 ## 📂 Estrutura do Projeto
 
-- `main.py`: Script principal contendo toda a lógica (YOLO, OCR, LLM).
-- `Treinamentos/`: Contém os pesos do modelo YOLO (`best.pt`).
-- `diagramas/`: Pasta para armazenar as imagens a serem analisadas.
-- `requirements.txt`: Lista de dependências Python.
+*   `main.py`: Core da aplicação (API FastAPI + Orquestração YOLO/LLM).
+*   `Treinamentos/`: Pesos do modelo YOLO treinado.
+*   `frontend/`: Interface gráfica simples para interação.
+*   `exemplos/`:
+    *   `diagramas/`: Imagens de exemplo para teste.
+    *   `metamodelos/`: Arquivos JSON/Txt com regras de exemplo.
 
-## 📝 Licença
+---
 
-Este projeto é de código aberto e está disponível sob a licença [MIT](LICENSE).
+## 🧠 Tecnologias Utilizadas
+
+*   **YOLOv8 (Ultralytics)**: Detecção de Objetos (Ícones).
+*   **LLM (Gemini 2.0 via OpenRouter)**: OCR mental, raciocínio de segurança e correlação de componentes.
+*   **FastAPI**: Backend.
+*   **HTML/JS**: Frontend responsivo.

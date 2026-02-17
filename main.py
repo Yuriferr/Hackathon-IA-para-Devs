@@ -67,11 +67,13 @@ def generate_stride_analysis(img_path, icons, metamodel_content=None):
 
     icons_json = json.dumps(icons, indent=2)
 
-    # Construção do Contexto do Metamodelo
-    metamodel_instruction = ""
+    # Construção Dinâmica do Prompt
+    metamodel_context = ""
+    compliance_task = ""
+    compliance_output_section = ""
+
     if metamodel_content:
-        metamodel_instruction = f"""
-        
+        metamodel_context = f"""
         ### METAMODELO DE REFERÊNCIA (CONFORMIDADE):
         O usuário forneceu um padrão (Metamodelo) que deve ser seguido.
         
@@ -85,38 +87,44 @@ def generate_stride_analysis(img_path, icons, metamodel_content=None):
         2. Destaque o que está EM CONFORMIDADE (segue as regras).
         3. Aponte claramente desvios ou violações do metamodelo.
         """
+        compliance_task = "- Analise a CONFORMIDADE com o Metamodelo fornecido."
+        compliance_output_section = """
+    ## Análise de Conformidade (Metamodelo)
+    *Se houver metamodelo, cite o que está correto e o que desvia.*
+    * **Em Conformidade**: ...
+    * **Desvios/Atenção**: ...
+    """
 
-    # Prompt otimizado e econômico
+    # Prompt Otimizado
     prompt = f"""
     Atue como Especialista em AppSec. Analise a imagem do Diagrama de Fluxo de Dados (DFD).
 
     DADOS TÉCNICOS:
-    - Identifique todos os ícones e o que eles representam (Bounding Boxes): {icons_json}
-    - Extraia os textos da imagem original em anexo.
-    {metamodel_instruction}
+    - Ícones detectados (Bounding Boxes): {icons_json}
+    - A imagem anexa contém as conexões visuais (setas/linhas) entre estes ícones.
+    {metamodel_context}
 
     TAREFA:
-    1. Identifique todo o texto presente na imagem (OCR mental).
-    2. Combine o texto com os ícones visuais para mapear os componentes (Entidades, Processos, Armazenamento, Fluxos).
-    3. Analise a CONFORMIDADE com o Metamodelo (se fornecido).
-    4. Gere um relatório de ameaças STRIDE.
+    - Analise visualmente as setas para identificar os FLUXOS E RELACIONAMENTOS entre os componentes.
+    - Identifique a direção do fluxo (Origem -> Destino) ou se é bidirecional (<->).
+    {compliance_task}
+    - Gere um relatório de ameaças STRIDE baseado nesses fluxos.
 
-    SAÍDA OBRIGATÓRIA (Markdown):
+    SAÍDA OBRIGATÓRIA (Markdown sem numeração nos títulos):
     
-    ## 1. Mapeamento do Diagrama
-    Liste os componentes identificados.
+    ## Mapeamento de Relacionamentos (Fluxos)
+    Liste EXPLICITAMENTE as conexões no formato "ElementoA -> ElementoB":
+    * **Fluxo**: [Tipo] NomeOrigem -> [Tipo] NomeDestino
+    * ...
 
-    ## 2. Análise de Conformidade (Metamodelo)
-    *Se houver metamodelo, cite o que está correto e o que desvia.*
-    * **Em Conformidade**: ...
-    * **Desvios/Atenção**: ...
+    {compliance_output_section}
 
-    ## 3. Matriz de Ameaças (STRIDE)
-    | Componente | STRIDE | Ameaça Identificada | Impacto |
+    ## Matriz de Ameaças (STRIDE)
+    | Componente/Fluxo | STRIDE | Ameaça Identificada | Impacto |
     | :--- | :---: | :--- | :--- |
     | ... | ... | ... | ... |
 
-    ## 4. Plano de Mitigação
+    ## Plano de Mitigação
     Liste as 3-5 correções prioritárias.
     """
 
