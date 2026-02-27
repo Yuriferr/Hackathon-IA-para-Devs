@@ -7,3 +7,5 @@ tqdm
 fastapi
 uvicorn
 python-multipart
+langchain-core
+langchain-ollama

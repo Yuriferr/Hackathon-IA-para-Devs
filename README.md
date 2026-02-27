@@ -27,7 +27,11 @@ Implementamos um recurso de "Cereja do Bolo": a capacidade de validar o diagrama
 *   *Como funciona*: O usuário pode fazer upload de um arquivo de regras (ex: `politica_seguranca.json`).
 *   *Resultado*: A IA não apenas gera o STRIDE, mas cruza o diagrama com as regras da empresa, apontando conformidades e violações (ex: "Banco de dados exposto diretamente à internet viola a regra X").
 
-### 3. API Simples e Direta (FastAPI)
+### 3. Execução de Modelos LLM Locais (Ollama + LangChain) 🔒
+Com foco na privacidade e segurança corporativa, o sistema foi migrado para utilizar o ecossistema **LangChain** executando modelos locais (via **Ollama**).
+*   *Vantagem*: Os diagramas de arquitetura da empresa não precisam ser enviados para nuvens públicas ou APIs externas (como OpenAI ou Google). Todo o processamento OCR e análise de ameaças ocorre em infraestrutura própria, preservando a confidencialidade dos dados sensíveis.
+
+### 4. API Simples e Direta (FastAPI)
 Uma arquitetura leve utilizando **FastAPI**, focada em ser fácil de implantar e integrar com outros sistemas de CI/CD ou dashboards de segurança existentes.
 
 ---
@@ -36,7 +40,7 @@ Uma arquitetura leve utilizando **FastAPI**, focada em ser fácil de implantar e
 
 ### Pré-requisitos
 *   Python 3.8+
-*   Chave de API configurada (OpenRouter/OpenAI/Gemini) no arquivo `.env`.
+*   [Ollama](https://ollama.com/) instalado e rodando com um modelo multimodal (ex: `llava`, `llama3`).
 
 ### 1. Instalação e Configuração
 
@@ -51,11 +55,12 @@ cd "Organizar Icones"
 pip install -r requirements.txt
 ```
 
-Crie um arquivo `.env` na raiz do projeto:
+Crie um arquivo `.env` na raiz do projeto contendo o modelo do Ollama que você irá utilizar:
 
 ```env
-OPENROUTER_API_KEY=sua_chave_aqui
+OLLAMA_MODEL=gemini-3-flash-preview
 ```
+*(Nota: Certifique-se de que o modelo especificado tenha sido puxado localmente rodando `ollama run <nome_do_modelo>`)*
 
 ### 2. Executando a Aplicação
 
@@ -70,25 +75,26 @@ python main.py
 
 1.  Abra o arquivo `frontend/index.html` em seu navegador.
 2.  **Upload do Diagrama**: Clique no botão de imagem e selecione seu DFD/Diagrama.
-3.  **Metamodelo (Opcional)**: Clique no botão flutuante (canto inferior direito) para anexar um arquivo de regras (ex: `exemplos/metamodelos/exemplo_metamodelo.json`).
+3.  **Metamodelo (Opcional)**: Clique no botão flutuante (canto inferior direito) para anexar um arquivo de regras corporativas (ex: `exemplos/metamodelos/exemplo_metamodelo.json`).
 4.  **Enviar**: Clique em enviar para receber a análise completa.
 
 ---
 
 ## 📂 Estrutura do Projeto
 
-*   `main.py`: Core da aplicação (API FastAPI + Orquestração YOLO/LLM).
+*   `main.py`: Core da aplicação (API FastAPI + Orquestração YOLO e LangChain).
 *   `Treinamentos/`: Pesos do modelo YOLO treinado.
 *   `frontend/`: Interface gráfica simples para interação.
 *   `exemplos/`:
     *   `diagramas/`: Imagens de exemplo para teste.
-    *   `metamodelos/`: Arquivos JSON/Txt com regras de exemplo.
+    *   `metamodelos/`: Arquivos JSON/Txt com regras de exemplo para testes de conformidade.
 
 ---
 
 ## 🧠 Tecnologias Utilizadas
 
-*   **YOLOv8 (Ultralytics)**: Detecção de Objetos (Ícones).
-*   **LLM (Gemini 2.0 via OpenRouter)**: OCR mental, raciocínio de segurança e correlação de componentes.
-*   **FastAPI**: Backend.
-*   **HTML/JS**: Frontend responsivo.
+*   **YOLOv8 (Ultralytics)**: Detecção de Objetos (Ícones de arquitetura).
+*   **LangChain & Ollama**: Orquestração do raciocínio de segurança e inferência na LLM local (garantindo privacidade).
+*   **FastAPI**: Backend ágil para servir a IA.
+*   **HTML/JS**: Frontend amigável e focado.
+

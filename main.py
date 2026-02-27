@@ -1,7 +1,6 @@
 import os
 import base64
 import json
-import requests
 import shutil
 import tempfile
 import uvicorn
@@ -10,6 +9,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from langchain_core.messages import HumanMessage
+from langchain_ollama import ChatOllama
 
 # Carrega variáveis de ambiente (.env)
 load_dotenv()
@@ -56,11 +58,9 @@ def generate_stride_analysis(img_path, icons, metamodel_content=None):
     Lê o texto da imagem e correlaciona com os ícones detectados em uma única chamada.
     Se houver metamodelo, usa para verificar conformidade.
     """
-    print(f" > Enviando dados para análise STRIDE (LLM)...")
+    print(f" > Enviando dados para análise STRIDE (LLM Ollama via LangChain)...")
     
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        return "ERRO: OPENROUTER_API_KEY não configurada."
+    model_name = os.getenv("OLLAMA_MODEL", "gemini-3-flash-preview")
 
     with open(img_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
@@ -128,42 +128,25 @@ def generate_stride_analysis(img_path, icons, metamodel_content=None):
     Liste as 3-5 correções prioritárias.
     """
 
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    
-    payload = {
-        "model": "google/gemini-2.0-flash-001",
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{encoded_string}"
-                        }
-                    }
-                ]
-            }
-        ]
-    }
-
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        result = response.json()
+        print(f" > Inferindo com o modelo Ollama local: {model_name}")
+        llm = ChatOllama(model=model_name, temperature=0.1)
         
-        if 'choices' in result:
-            return result['choices'][0]['message']['content']
-        else:
-            return f"Erro na API: {result}"
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{encoded_string}"}
+                }
+            ]
+        )
+        
+        response = llm.invoke([message])
+        return response.content
             
     except Exception as e:
-        return f"Erro na requisição LLM: {e}"
+        return f"Erro na requisição LLM (Ollama): {e}"
 
 @app.post("/analyze")
 async def analyze_diagram(file: UploadFile = File(...), metamodel: UploadFile = File(None)):
