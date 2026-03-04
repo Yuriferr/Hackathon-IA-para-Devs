@@ -45,7 +45,6 @@ async def analyze(file: UploadFile = File(...), metamodel: UploadFile = File(Non
         
         service = AnalyzeService()
         report = service.analyze(file, metamodel_content)
-        print("PASSO 2")
 
         return JSONResponse(content={"report": report})
         

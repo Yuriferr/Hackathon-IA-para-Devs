@@ -14,12 +14,12 @@ class AnalyzeService:
     #     self.metamodel_path = metamodel_path
     
     def extract_icons(self, img_path, model_path):
-        print("DENTRO DO EXTRACT ICONS")
         """
         Extrai ícones usando o modelo YOLO local.
         """
         print(f" > Iniciando detecção de ícones com YOLO...")
         try:
+            import pdb; pdb.set_trace()
             model = YOLO(model_path)
             results = model(img_path, conf=0.6)
             
