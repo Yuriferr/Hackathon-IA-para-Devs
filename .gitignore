@@ -1,2 +1,29 @@
-/venv
-.env
+# Virtual environment
+venv/
+**/venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Byte-compiled / optimized / DLL files
+*.so
+*.dylib
+*.pyd
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.loggit 
+
+# Coverage
+htmlcov/
+.coverage

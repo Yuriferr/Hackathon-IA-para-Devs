@@ -5,7 +5,7 @@ requests
 PyYAML
 tqdm
 fastapi
-uvicorn
+uvicorn[standard]
 python-multipart
 langchain-core
 langchain-ollama
