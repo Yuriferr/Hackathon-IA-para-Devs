@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from ultralytics import YOLO
 from langchain_core.messages import HumanMessage
 from langchain_ollama import ChatOllama
 
@@ -19,10 +20,8 @@ class AnalyzeService:
         """
         print(f" > Iniciando detecção de ícones com YOLO...")
         try:
-            import pdb; pdb.set_trace()
             model = YOLO(model_path)
             results = model(img_path, conf=0.6)
-            
             icons_data = []
             for result in results:
                 for box in result.boxes:
@@ -38,20 +37,8 @@ class AnalyzeService:
         except Exception as e:
             print(f"Erro no YOLO: {e}")
             return []
-        
-    def generate_stride_analysis(self, img_path, icons, metamodel_content=None):
-        print("DENTRO DO GENERATE STRIDE ANALYSIS")
-        """
-        Gera a análise STRIDE completa usando a LLM (Multimodal).
-        Lê o texto da imagem e correlaciona com os ícones detectados em uma única chamada.
-        Se houver metamodelo, usa para verificar conformidade.
-        """
-        print(f" > Enviando dados para análise STRIDE (LLM Ollama via LangChain)...")
-        
-        model_name = os.getenv("OLLAMA_MODEL", "gemini-3-flash-preview")
 
-        with open(img_path, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+    def build_prompt(self, icons, metamodel_content=None):
 
         icons_json = json.dumps(icons, indent=2)
 
@@ -116,6 +103,25 @@ class AnalyzeService:
         Liste as 3-5 correções prioritárias.
         """
 
+        return prompt
+
+    def generate_stride_analysis(self, img_path, icons, metamodel_content=None):
+        """
+        Gera a análise STRIDE completa usando a LLM (Multimodal).
+        Lê o texto da imagem e correlaciona com os ícones detectados em uma única chamada.
+        Se houver metamodelo, usa para verificar conformidade.
+        """
+
+        prompt = self.build_prompt(icons, metamodel_content)
+
+        print(f" > Enviando dados para análise STRIDE (LLM Ollama via LangChain)...")
+        #import pdb; pdb.set_trace()
+        #model_name = os.getenv("OLLAMA_MODEL", "gemini-3-flash-preview")
+        model_name = os.getenv("OLLAMA_MODEL", "gemini-3-flash-preview:latest")
+
+        with open(img_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+
         try:
             print(f" > Inferindo com o modelo Ollama local: {model_name}")
             llm = ChatOllama(model=model_name, temperature=0.1)
@@ -129,8 +135,10 @@ class AnalyzeService:
                     }
                 ]
             )
-            
+            print(f"Vai invocar a llm")
+            #import pdb; pdb.set_trace()
             response = llm.invoke([message])
+            print(f"llm invocada")
             return response.content
                 
         except Exception as e:
@@ -147,7 +155,7 @@ class AnalyzeService:
         
         # 2. Configuração
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(base_dir, "..","core","Treinamentos", "yolov8n_icons", "weights", "best.pt")
+        model_path = os.path.join(base_dir, "..","core", "best.pt")
         if not os.path.exists(model_path):
             raise Exception(detail="Modelo YOLO não encontrado.")
 

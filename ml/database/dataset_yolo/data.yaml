@@ -1,0 +1,5 @@
+names:
+  0: icon
+path: C:\Projetos\Organizar Icones\dataset_yolo
+train: images/train
+val: images/val
