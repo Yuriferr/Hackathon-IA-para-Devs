@@ -216,7 +216,7 @@
                     formData.append("metamodel", metamodelToSend);
                 }
 
-                const response = await fetch("http://localhost:8000/analyze", {
+                const response = await fetch("http://localhost:8000/api/analyze", {
                     method: "POST",
                     body: formData
                 });
