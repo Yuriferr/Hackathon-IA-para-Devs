@@ -1,0 +1,6 @@
+Pillow
+python-dotenv
+PyYAML
+python-multipart
+tqdm
+ultralytics

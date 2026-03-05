@@ -1,17 +1,32 @@
 from ultralytics import YOLO
 import os
+import torch
+
+# Configuração de dispositivo (GPU se disponível). Sendo assim, fica agnóstico para o ambiente de cada um.
+def get_device():
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
 
 if __name__ == '__main__':
     # Carrega modelo
     model = YOLO("yolov8n.pt") 
 
-    # Define o caminho do dataset (apontando para a pasta JPG que acabamos de criar)
-    dataset_path = r"C:\Projetos\Organizar Icones\dataset_yolo\data.yaml"
+    # seleciona do device disponível (GPU > MPS > CPU)
+    device = get_device()
+    print(f"Using device: {device}")
 
+    # Configurações de diretórios
+    BASE_DIR = os.path.dirname(__file__) 
+    dataset_path = os.path.join(BASE_DIR, "..", "database", "dataset_yolo", "data.yaml")
+    training_dir = os.path.join(BASE_DIR, "Treinamentos")
     
     results = model.train(
         data=dataset_path,
-        project=r"C:\Projetos\Organizar Icones\Treinamentos",
+        project=training_dir,
         name="yolov8n_icons",
         
         # --- ESTRATÉGIA DE TREINO ---
@@ -36,7 +51,7 @@ if __name__ == '__main__':
         
         # --- Otimização ---
         batch=-1,           # AutoBatch
-        device=0,           
+        device=device,      # Usa GPU se disponível
         workers=4,          # Aumentei workers para dar conta de carregar 8000 imagens rápido
         cache=True,         # Usa cache RAM/Disco para acelerar
         amp=True,

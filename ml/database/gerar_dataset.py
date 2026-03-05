@@ -4,16 +4,16 @@ import glob
 import shutil
 import yaml
 import sys
-import math
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 from tqdm import tqdm
 
 # ==========================================
 #        CONFIGURAÇÕES AJUSTADAS
 # ==========================================
 
-ICONS_PATH = "icons"
-OUTPUT_PATH = "dataset_yolo"
+BASE_DIR = os.path.dirname(__file__)
+ICONS_PATH = os.path.join(BASE_DIR, "icons")
+OUTPUT_PATH = os.path.join(BASE_DIR, "dataset_yolo")
 
 # META DE COBERTURA: Garante repetição matemática
 MIN_REPEATS_PER_ICON = 50  
@@ -57,6 +57,7 @@ def load_icons(path):
     files = []
     for ext in ['*.png', '*.PNG', '*.jpg', '*.jpeg']:
         files.extend(glob.glob(os.path.join(path, '**', ext), recursive=True))
+        
     unique_files = list(set(files))
     if not unique_files:
         sys.exit(f"❌ ERRO: Nenhum ícone encontrado em '{path}'")
