@@ -59,10 +59,52 @@ Este é o ambiente principal para inicializar o MVP e a Interface Frontend.
    ```bash
    python -m uvicorn app.main:app --reload
    ```
-
 ---
 
-### 2. Configurando o Ambiente de Machine Learning (Para Treinamento)
+### 2. Gerando o Dataset de Treinamento (YOLO)
+
+No diretório `ml/database/icons` estão armazenados os ícones de arquitetura das plataformas **AWS** e **Azure**.
+
+A partir desses ícones, um script gera automaticamente um **dataset sintético de treinamento**, criando diversas imagens com composições aleatórias de ícones, conexões, textos e variações visuais. Esse dataset é utilizado posteriormente para o treinamento do modelo de detecção baseado em **YOLO**.
+
+Este repositório já inclui um dataset previamente gerado. Entretanto, caso deseje gerar um novo dataset, siga os passos abaixo:
+
+1. **Abra um novo terminal**, navegue até a pasta `ml` e crie o ambiente virtual:
+   ```bash
+   cd ml
+   python -m venv venv
+   ```
+
+2. **Ative o ambiente:**
+   * **Windows:** `venv\Scripts\activate`
+   * **Linux/Mac:** `source venv/bin/activate`
+
+3. **Instale os requisitos pesados:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Rodando o script para criação do dataset:**
+   Execute o script para a geração da base conforme descrito abaixo.
+   ```bash
+   cd database
+   python gerar_dataset.py
+   ```
+
+   O script criará automaticamente o dataset no formato esperado pelo YOLO, incluindo:
+   ```bash
+   dataset_yolo/
+   ├── images/
+   │   ├── train
+   │   └── val
+   └── labels/
+   │  ├── train
+   │  └── val
+   └── data.yaml
+   ```
+---
+
+### 3. Configurando o Ambiente de Machine Learning (Para Treinamento)
 
 Caso você queira reavaliar ou aumentar o dataset anotado e realizar um novo treinamento via YOLOv8, monte este outro ambiente virtual. *(Desnecessário se você quiser apenas rodar e usar a IA)*.
 
@@ -90,10 +132,10 @@ Caso você queira reavaliar ou aumentar o dataset anotado e realizar um novo tre
 
 ---
 
-### 3. Acessando a Solução Visual (Frontend)
+### 4. Acessando a Solução Visual (Frontend)
 
 Com a API rodando com sucesso no Passo 1:
-1. Abra em seu navegador de preferência a rota criada automaticamente: **`http://localhost:8000/frontend/index.html`** (se estiver acessando pela URL virtual do app default) OU simplesmente abra o arquivo local da pasta `frontend/index.html` em seu navegador web.
+1. Abra em seu navegador o local host na porta 8000, de preferência a rota criada automaticamente: **`http://localhost:8000/`** (se estiver acessando pela URL virtual do app default) OU simplesmente abra o arquivo local da pasta `frontend/index.html` em seu navegador web.
 2. **Faça o Upload**: Arraste ou selecione seu fluxograma/diagrama de Arquitetura de Software.
 3. **Anexe as Regras (Diferencial)**: Envie o JSON do Metamodelo da empresa clicando no botão no canto direito ou deixe em branco se não possuir!
 4. Clique em enviar. A Visão computacional escaneará em instantes as bounding boxes e a LLM formulará e imprimirá o **Relatório STRIDE**.
