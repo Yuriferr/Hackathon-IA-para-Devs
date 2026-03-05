@@ -1,100 +1,105 @@
-# 🛡️ Automated Threat Modeling with AI (STRIDE)
+# 🛡️ Modelagem de Ameaças Utilizando IA
 
-Este projeto foi desenvolvido como um MVP para a **FIAP Software Security**, visando otimizar a análise de vulnerabilidades em arquiteturas de sistemas utilizando Inteligência Artificial.
+Este projeto foi desenvolvido como **desafio da pós-graduação** para a **FIAP IA para Devs**. O objetivo principal é validar a viabilidade de uma nova funcionalidade corporativa: otimizar a análise de vulnerabilidades em arquiteturas de sistemas utilizando Inteligência Artificial.
 
-## 🎯 Objetivo do Desafio
+## 📋 Resumo
 
-A empresa tem como objetivo validar a viabilidade de uma nova funcionalidade: **realizar automaticamente a modelagem de ameaças baseada na metodologia STRIDE a partir de um diagrama de arquitetura de software (imagem).**
+O projeto consiste no desenvolvimento de um **MVP (Produto Mínimo Viável)** corporativo robusto para detecção supervisionada de ameaças em arquiteturas. O sistema atua recebendo um diagrama de arquitetura de software (imagem) e executa automaticamente as seguintes etapas:
+1. **Interpretação Automática do Diagrama**: Identifica de maneira visual os componentes de arquitetura presentes (usuários, servidores, bancos de dados, APIs, provedores Cloud, etc.) utilizando nosso modelo de Visão Computacional de detecção de objetos.
+2. **Análise de Fluxos e Vulnerabilidades**: O sistema analisa visualmente as conexões (setas) para mapear o fluxo de dados, interpretando como cada componente interage e em qual direção.
+3. **Relatório STRIDE**: Gera automaticamente um Relatório de Modelagem de Ameaças fundamentado na metodologia STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege), listando riscos de segurança para cada componente e as contramedidas específicas sugeridas para mitigação.
 
-### Metas Alcançadas:
-*   ✅ **Interpretação Automática**: IA capaz de identificar componentes arquiteturais (usuários, servidores, bancos de dados, APIs, etc) em imagens.
-*   ✅ **Relatório STRIDE**: Geração automática de um relatório de ameaças categorizado.
-*   ✅ **Dataset & Treinamento**: Construção e anotação de um dataset próprio para treinar um modelo supervisionado (YOLO) focado em ícones de diagramas.
-*   ✅ **Sistema de Detecção**: API integrada que une Visão Computacional e LLMs para apontar vulnerabilidades e contramedidas.
+Nós cobrimos todo o ciclo do desafio: **Buscamos as imagens**, **Anotamos o Dataset**, **Treinamos um modelo de visão**, e **Integramos tudo a um sistema com LLM para gerar as respostas**.
 
----
+## 🌟 Diferenciais do Projeto
 
-## 🚀 Diferenciais do Projeto (Extras)
+Além de cumprir de forma integral os requisitos propostos no desafio, nós projetamos funcionalidades avançadas visando cenários do mundo real de engenharia DevSecOps:
 
-Além dos requisitos básicos, este projeto implementou funcionalidades avançadas pensando no uso corporativo real:
+*   **Validação via Metamodelo (Compliance) 🍒**: Em vez de apenas gerar ameaças genéricas, nosso sistema permite o envio de um *Metamodelo* da sua organização. O sistema cruza as diretrizes desse metamodelo (ex: regras de compliance em JSON ou TXT) com o diagrama analisado. Se a sua arquitetura apontar um banco de dados diretamente para a internet violando a regra corporativa, nossa IA irá alertar essa falha de compliance de forma direcionada.
+*   **Treinamento Otimizado com YOLOv8 via Arquitetura CUDA 🚀**: Diferente de abordagens mais lentas, todo o script de treinamento de Machine Learning do YOLO foi executado com GPU. Utilizamos uma máquina equipada com CUDA, aplicando estratégias robustas de augmentação e visão (`mosaic`, `mixup`, etc.) configurado automaticamente se houver aceleração de hardware. Isso resultou num tempo de treinamento minúsculo na classificação dos mais diversos ícones de arquiteturas (AWS, Azure, GCP).
+*   **Privacidade com LLM Locais e Pipeline LangChain 🔒**: Sabemos que diagramas e sistemas são sigilosos. Fizemos um upgrade na arquitetura para não depender de APIs externas públicas. O projeto foi arquitetado usando **LangChain** orquestrado com **Ollama**. Isso permite o processamento LLM Multimodal usando infraestrutura fechada (Ex: rodando Llama 3 ou LLaVA localmente), impedindo vazamento da topologia do sistema de quem está usando a plataforma.
+*   **Back-end Próprio Desacoplado**: Usamos **FastAPI** provendo modularidade para fácil integração com esteiras CI/CD.
 
-### 1. Modelo YOLO Customizado para Ícones
-Desenvolvemos e treinamos um modelo **YOLOv8** específico para detectar ícones de arquitetura (AWS, Azure, GCP, Kubernetes, etc). 
-*   *Vantagem*: Este modelo é modular e pode ser reutilizado em outros projetos de análise de diagramas, independente da geração de relatórios de segurança.
+## 🛠️ Como Instalar e Usar
 
-### 2. Validação via Metamodelo (Compliance) 🍒
-Implementamos um recurso de "Cereja do Bolo": a capacidade de validar o diagrama contra um **Metamodelo Corporativo**.
-*   *Como funciona*: O usuário pode fazer upload de um arquivo de regras (ex: `politica_seguranca.json`).
-*   *Resultado*: A IA não apenas gera o STRIDE, mas cruza o diagrama com as regras da empresa, apontando conformidades e violações (ex: "Banco de dados exposto diretamente à internet viola a regra X").
+**Atenção:** Como nosso projeto mistura dois pilares – o uso do Sistema (Back-end/API/LLM) e a parte de Machine Learning (Treinamento do Dataset YOLO) – **é altamente recomendado configurar ambientes virtuais separados** para evitar gargalos de bibliotecas entre a API rodando em produção e o laboratório de dados.
 
-### 3. Execução de Modelos LLM Locais (Ollama + LangChain) 🔒
-Com foco na privacidade e segurança corporativa, o sistema foi migrado para utilizar o ecossistema **LangChain** executando modelos locais (via **Ollama**).
-*   *Vantagem*: Os diagramas de arquitetura da empresa não precisam ser enviados para nuvens públicas ou APIs externas (como OpenAI ou Google). Todo o processamento OCR e análise de ameaças ocorre em infraestrutura própria, preservando a confidencialidade dos dados sensíveis.
-
-### 4. API Simples e Direta (FastAPI)
-Uma arquitetura leve utilizando **FastAPI**, focada em ser fácil de implantar e integrar com outros sistemas de CI/CD ou dashboards de segurança existentes.
+### Pré-requisitos Gerais
+*   **Python 3.8+** instalado.
+*   **[Ollama](https://ollama.com/)** rodando na sua máquina. Antes de iniciar, baixe o modelo pelo terminal (ex: `ollama run gemini-3-flash-preview` que é o nosso padrão adotado).
 
 ---
 
-## 🛠️ Como Usar
+### 1. Configurando o Back-end da API REST (Para Uso)
 
-### Pré-requisitos
-*   Python 3.8+
-*   [Ollama](https://ollama.com/) instalado e rodando com um modelo multimodal (ex: `llava`, `llama3`).
+Este é o ambiente principal para inicializar o MVP e a Interface Frontend.
 
-### 1. Instalação e Configuração
+1. **Abra um terminal**, navegue até a pasta `backend` e crie o ambiente virtual:
+   ```bash
+   cd backend
+   python -m venv venv
+   ```
 
-Clone o repositório e instale as dependências:
+2. **Ative o ambiente:**
+   * **Windows:** `venv\Scripts\activate`
+   * **Linux/Mac:** `source venv/bin/activate`
 
-```bash
-# Clone o projeto
-git clone [URL_DO_REPOSITORIO]
-cd "Organizar Icones"
+3. **Instale os requisitos da API:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# Instale os requisitos
-pip install -r requirements.txt
-```
+4. **Executar o Ollama:**
+   ```bash
+   ollama run gemini-3-flash-preview
+   ```
 
-Crie um arquivo `.env` na raiz do projeto contendo o modelo do Ollama que você irá utilizar:
-
-```env
-OLLAMA_MODEL=gemini-3-flash-preview
-```
-*(Nota: Certifique-se de que o modelo especificado tenha sido puxado localmente rodando `ollama run <nome_do_modelo>`)*
-
-### 2. Executando a Aplicação
-
-Inicie o servidor da API:
-
-```bash
-python main.py
-```
-*O servidor iniciará em `http://localhost:8001`*
-
-### 3. Utilizando o Frontend
-
-1.  Abra o arquivo `frontend/index.html` em seu navegador.
-2.  **Upload do Diagrama**: Clique no botão de imagem e selecione seu DFD/Diagrama.
-3.  **Metamodelo (Opcional)**: Clique no botão flutuante (canto inferior direito) para anexar um arquivo de regras corporativas (ex: `exemplos/metamodelos/exemplo_metamodelo.json`).
-4.  **Enviar**: Clique em enviar para receber a análise completa.
+5. **Iniciando a API:**
+   O projeto já está padronizado para utilizar o modelo `gemini-3-flash-preview`. Inicie a aplicação utilizando o comando:
+   ```bash
+   python -m uvicorn app.main:app --reload
+   ```
 
 ---
 
-## 📂 Estrutura do Projeto
+### 2. Configurando o Ambiente de Machine Learning (Para Treinamento)
 
-*   `main.py`: Core da aplicação (API FastAPI + Orquestração YOLO e LangChain).
-*   `Treinamentos/`: Pesos do modelo YOLO treinado.
-*   `frontend/`: Interface gráfica simples para interação.
-*   `exemplos/`:
-    *   `diagramas/`: Imagens de exemplo para teste.
-    *   `metamodelos/`: Arquivos JSON/Txt com regras de exemplo para testes de conformidade.
+Caso você queira reavaliar ou aumentar o dataset anotado e realizar um novo treinamento via YOLOv8, monte este outro ambiente virtual. *(Desnecessário se você quiser apenas rodar e usar a IA)*.
+
+1. **Abra um novo terminal**, navegue até a pasta `ml` e crie o ambiente virtual:
+   ```bash
+   cd ml
+   python -m venv venv
+   ```
+
+2. **Ative o ambiente:**
+   * **Windows:** `venv\Scripts\activate`
+   * **Linux/Mac:** `source venv/bin/activate`
+
+3. **Instale os requisitos pesados:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Rodando o Treino no PyTorch/YOLO:**
+   O processo procurará automaticamente por núcleos CUDA para disparar o treinamento rápido, senão rodará via processador.
+   ```bash
+   cd training
+   python train.py
+   ```
 
 ---
 
-## 🧠 Tecnologias Utilizadas
+### 3. Acessando a Solução Visual (Frontend)
 
-*   **YOLOv8 (Ultralytics)**: Detecção de Objetos (Ícones de arquitetura).
-*   **LangChain & Ollama**: Orquestração do raciocínio de segurança e inferência na LLM local (garantindo privacidade).
-*   **FastAPI**: Backend ágil para servir a IA.
-*   **HTML/JS**: Frontend amigável e focado.
+Com a API rodando com sucesso no Passo 1:
+1. Abra em seu navegador de preferência a rota criada automaticamente: **`http://localhost:8000/frontend/index.html`** (se estiver acessando pela URL virtual do app default) OU simplesmente abra o arquivo local da pasta `frontend/index.html` em seu navegador web.
+2. **Faça o Upload**: Arraste ou selecione seu fluxograma/diagrama de Arquitetura de Software.
+3. **Anexe as Regras (Diferencial)**: Envie o JSON do Metamodelo da empresa clicando no botão no canto direito ou deixe em branco se não possuir!
+4. Clique em enviar. A Visão computacional escaneará em instantes as bounding boxes e a LLM formulará e imprimirá o **Relatório STRIDE**.
 
+## 🎥 Entregáveis Finais
+
+*   **Link do Github do projeto**: [Inserir o Link]
+*   **Documentação**: Você está lendo nela! Todos os passos de solução propostos foram sanados e organizados nas ramificações `/backend` e `/ml`.
+*   **Vídeo do Pitch (até 15min)**: [Inserir o Link no YouTube/Drive do Pitch final]
