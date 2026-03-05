@@ -1,6 +1,6 @@
 # 🛡️ Modelagem de Ameaças Utilizando IA
 
-Este projeto foi desenvolvido como **desafio da pós-graduação** para a **FIAP Software Security**. O objetivo principal é validar a viabilidade de uma nova funcionalidade corporativa: otimizar a análise de vulnerabilidades em arquiteturas de sistemas utilizando Inteligência Artificial.
+Este projeto foi desenvolvido como **desafio da pós-graduação** para a **FIAP IA para Devs**. O objetivo principal é validar a viabilidade de uma nova funcionalidade corporativa: otimizar a análise de vulnerabilidades em arquiteturas de sistemas utilizando Inteligência Artificial.
 
 ## 📋 Resumo
 
