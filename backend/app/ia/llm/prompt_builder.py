@@ -40,7 +40,18 @@ class PromptBuilder:
 
         # Prompt Otimizado
         prompt = f"""
-        Atue como Especialista em AppSec. Analise a imagem do Diagrama de Fluxo de Dados (DFD).
+        Atue como Especialista em AppSec.
+
+        VERIFICAÇÃO INICIAL:
+
+        Antes de qualquer coisa, valide se a imagem anexa corresponde a um diagrama de arquitetura de software, diagrama de rede, modelo de ameaças ou Diagrama de Fluxo de Dados (DFD).
+        Se a imagem NÃO for um diagrama válido (por exemplo: foto de pessoas, animais, paisagem, meme, objetos, tela em branco ou texto aleatório), interrompa a análise, não gere nenhum relatório e responda APENAS com a seguinte mensagem:
+
+        "⚠️ **Aviso:** A imagem fornecida não parece ser um diagrama de arquitetura ou de fluxo estruturado reconhecível. Por favor, envie um diagrama válido para a análise."
+
+        Caso a imagem seja um diagrama ou desenho de arquitetura válido, prossiga com a análise a seguir:
+
+        Analise a imagem do Diagrama de Fluxo de Dados (DFD).
 
         DADOS TÉCNICOS:
         - Ícones detectados (Bounding Boxes): {icons_json}

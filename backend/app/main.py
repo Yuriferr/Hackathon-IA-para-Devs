@@ -33,7 +33,7 @@ app.mount("/frontend", StaticFiles(directory=frontend_path), name="frontend")
 # Rota opcional para abrir index.html na raiz
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    return (frontend_path / "index.html").read_text()
+    return (frontend_path / "index.html").read_text(encoding="utf-8")
 
 # Monta todas as rotas da API
 app.include_router(api_router, prefix="/api")
