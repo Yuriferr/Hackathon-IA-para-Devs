@@ -41,8 +41,14 @@ Este é o ambiente principal para inicializar o MVP e a Interface Frontend.
    ```
 
 2. **Ative o ambiente:**
-   * **Windows:** `venv\Scripts\activate`
-   * **Linux/Mac:** `source venv/bin/activate`
+   * **Windows:** 
+      ```bash
+      venv\Scripts\activate
+      ```
+   * **Linux/Mac:** 
+      ```
+      source venv/bin/activate
+      ```
 
 3. **Instale os requisitos da API:**
    ```bash
@@ -76,8 +82,14 @@ Este repositório já inclui um dataset previamente gerado. Entretanto, caso des
    ```
 
 2. **Ative o ambiente:**
-   * **Windows:** `venv\Scripts\activate`
-   * **Linux/Mac:** `source venv/bin/activate`
+   * **Windows:** 
+      ```bash
+      venv\Scripts\activate
+      ```
+   * **Linux/Mac:** 
+      ```
+      source venv/bin/activate
+      ```
 
 3. **Instale os requisitos pesados:**
    ```bash
@@ -115,8 +127,14 @@ Caso você queira reavaliar ou aumentar o dataset anotado e realizar um novo tre
    ```
 
 2. **Ative o ambiente:**
-   * **Windows:** `venv\Scripts\activate`
-   * **Linux/Mac:** `source venv/bin/activate`
+   * **Windows:** 
+      ```bash
+      venv\Scripts\activate
+      ```
+   * **Linux/Mac:** 
+      ```
+      source venv/bin/activate
+      ```
 
 3. **Instale os requisitos pesados:**
    ```bash
