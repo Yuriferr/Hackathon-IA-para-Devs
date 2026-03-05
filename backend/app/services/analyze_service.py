@@ -1,179 +1,59 @@
 import os
-import base64
-import json
 import shutil
 import tempfile
-from pathlib import Path
 
-from ultralytics import YOLO
-from langchain_core.messages import HumanMessage
-from langchain_ollama import ChatOllama
+from app.ia.llm.prompt_builder import PromptBuilder
+from app.ia.llm.stride_analyzer import StrideAnalyzer
+from app.ia.metamodel.metamodel_sevice import MetamodelService
+from app.ia.vision.icon_detector import IconDetector
 
 class AnalyzeService:
-    # def __init__(self, file_path: str, metamodel_path: str = None):
-    #     self.file_path = file_path
-    #     self.metamodel_path = metamodel_path
-    
-    def extract_icons(self, img_path, model_path):
-        """
-        Extrai ícones usando o modelo YOLO local.
-        """
-        print(f" > Iniciando detecção de ícones com YOLO...")
-        try:
-            model = YOLO(model_path)
-            results = model(img_path, conf=0.6)
-            icons_data = []
-            for result in results:
-                for box in result.boxes:
-                    class_id = int(box.cls[0])
-                    class_name = model.names[class_id]
-                    icons_data.append({
-                        "object_type": class_name,
-                        "box": box.xyxy[0].tolist(),
-                        "confidence": float(box.conf[0])
-                    })
-            print(f" > {len(icons_data)} ícones detectados.")
-            return icons_data
-        except Exception as e:
-            print(f"Erro no YOLO: {e}")
-            return []
+    def __init__(self):
+        self.icon_detector = IconDetector()
+        self.prompt_builder = PromptBuilder()
+        self.stride_analyzer = StrideAnalyzer()
+        self.metamodel_service = MetamodelService()
 
-    def build_prompt(self, icons, metamodel_content=None):
-
-        icons_json = json.dumps(icons, indent=2)
-
-        # Construção Dinâmica do Prompt
-        metamodel_context = ""
-        compliance_task = ""
-        compliance_output_section = ""
-
-        if metamodel_content:
-            metamodel_context = f"""
-            ### METAMODELO DE REFERÊNCIA (CONFORMIDADE):
-            O usuário forneceu um padrão (Metamodelo) que deve ser seguido.
-            
-            CONTEÚDO DO METAMODELO:
-            ---
-            {metamodel_content}
-            ---
-            
-            DIRETRIZES DE CONFORMIDADE:
-            1. Compare o diagrama atual com o Metamodelo acima.
-            2. Destaque o que está EM CONFORMIDADE (segue as regras).
-            3. Aponte claramente desvios ou violações do metamodelo.
-            """
-            compliance_task = "- Analise a CONFORMIDADE com o Metamodelo fornecido."
-            compliance_output_section = """
-        ## Análise de Conformidade (Metamodelo)
-        *Se houver metamodelo, cite o que está correto e o que desvia.*
-        * **Em Conformidade**: ...
-        * **Desvios/Atenção**: ...
-        """
-
-        # Prompt Otimizado
-        prompt = f"""
-        Atue como Especialista em AppSec. Analise a imagem do Diagrama de Fluxo de Dados (DFD).
-
-        DADOS TÉCNICOS:
-        - Ícones detectados (Bounding Boxes): {icons_json}
-        - A imagem anexa contém as conexões visuais (setas/linhas) entre estes ícones.
-        {metamodel_context}
-
-        TAREFA:
-        - Analise visualmente as setas para identificar os FLUXOS E RELACIONAMENTOS entre os componentes.
-        - Identifique a direção do fluxo (Origem -> Destino) ou se é bidirecional (<->).
-        {compliance_task}
-        - Gere um relatório de ameaças STRIDE baseado nesses fluxos.
-
-        SAÍDA OBRIGATÓRIA (Markdown sem numeração nos títulos):
-        
-        ## Mapeamento de Relacionamentos (Fluxos)
-        Liste EXPLICITAMENTE as conexões no formato "ElementoA -> ElementoB":
-        * **Fluxo**: [Tipo] NomeOrigem -> [Tipo] NomeDestino
-        * ...
-
-        {compliance_output_section}
-
-        ## Matriz de Ameaças (STRIDE)
-        | Componente/Fluxo | STRIDE | Ameaça Identificada | Impacto |
-        | :--- | :---: | :--- | :--- |
-        | ... | ... | ... | ... |
-
-        ## Plano de Mitigação
-        Liste as 3-5 correções prioritárias.
-        """
-
-        return prompt
-
-    def generate_stride_analysis(self, img_path, icons, metamodel_content=None):
-        """
-        Gera a análise STRIDE completa usando a LLM (Multimodal).
-        Lê o texto da imagem e correlaciona com os ícones detectados em uma única chamada.
-        Se houver metamodelo, usa para verificar conformidade.
-        """
-
-        prompt = self.build_prompt(icons, metamodel_content)
-
-        print(f" > Enviando dados para análise STRIDE (LLM Ollama via LangChain)...")
-        #import pdb; pdb.set_trace()
-        #model_name = os.getenv("OLLAMA_MODEL", "gemini-3-flash-preview")
-        model_name = os.getenv("OLLAMA_MODEL", "gemini-3-flash-preview:latest")
-
-        with open(img_path, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-
-        try:
-            print(f" > Inferindo com o modelo Ollama local: {model_name}")
-            llm = ChatOllama(model=model_name, temperature=0.1)
-            
-            message = HumanMessage(
-                content=[
-                    {"type": "text", "text": prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{encoded_string}"}
-                    }
-                ]
-            )
-            print(f"Vai invocar a llm")
-            #import pdb; pdb.set_trace()
-            response = llm.invoke([message])
-            print(f"llm invocada")
-            return response.content
-                
-        except Exception as e:
-            return f"Erro na requisição LLM (Ollama): {e}"
-    
-    def analyze(self, file, metamodel_content):
-        #try:
-        print("DENTRO NO ANALYZE SERVICE")
-        # 1. Salvar arquivo temporário
+    def _save_temp_file(self, file):
         suffix = os.path.splitext(file.filename)[1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             shutil.copyfileobj(file.file, tmp)
-            temp_filename = tmp.name
-        
-        # 2. Configuração
+            return tmp.name
+
+    def _get_model_path(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(base_dir, "..","core", "best.pt")
+        model_path = os.path.join(base_dir, "..", "core", "best.pt")
         if not os.path.exists(model_path):
-            raise Exception(detail="Modelo YOLO não encontrado.")
+            raise Exception("Modelo YOLO não encontrado.")
+        return model_path
 
-        # 3. Execução Otimizada
-        # A: Detectar ícones localmente
-        icons = self.extract_icons(temp_filename, model_path)
-        
-        # B: Análise completa (OCR + STRIDE + COMPLIANCE)
-        report = self.generate_stride_analysis(temp_filename, icons, metamodel_content)
+    async def analyze(self, file, metamodel):
+        try:
 
-        return report
-        # except Exception as e:
-        #     print(f"Erro: {e}")
-        #     return JSONResponse(status_code=500, content={"error": str(e)})
-            
-        # finally:
-        #     if temp_filename and os.path.exists(temp_filename):
-        #         try:
-        #             os.remove(temp_filename)
-        #         except Exception:
-        #             pass
+            # 0. Processar Metamodelo (se houver)
+            metamodel_content = await self.metamodel_service.read_metamodel(metamodel)
+
+            # 1. Preparação
+            temp_filename = self._save_temp_file(file)
+            model_path = self._get_model_path()
+
+            # 2. Detectar ícones
+            icons = self.icon_detector.detect(temp_filename, model_path)
+
+            # 3. Construir prompt otimizado para análise STRIDE
+            prompt = self.prompt_builder.build(icons, metamodel_content)
+
+            # 4. Análise completa (OCR + STRIDE + COMPLIANCE)
+            report = self.stride_analyzer.analyze(temp_filename, prompt)
+
+            return report
+        except Exception as e:
+            print(f"Erro: {e}")
+            raise
+
+        finally:
+            if temp_filename and os.path.exists(temp_filename):
+                try:
+                    os.remove(temp_filename)
+                except Exception:
+                    pass
