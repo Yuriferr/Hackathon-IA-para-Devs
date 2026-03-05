@@ -135,13 +135,13 @@ Caso você queira reavaliar ou aumentar o dataset anotado e realizar um novo tre
 ### 4. Acessando a Solução Visual (Frontend)
 
 Com a API rodando com sucesso no Passo 1:
-1. Abra em seu navegador o local host na porta 8000, de preferência a rota criada automaticamente: **`http://localhost:8000/`** (se estiver acessando pela URL virtual do app default) OU simplesmente abra o arquivo local da pasta `frontend/index.html` em seu navegador web.
+1. Abra em seu navegador o local host na porta 8000, de preferência a rota criada automaticamente: **[http://localhost:8000/](http://localhost:8000/)** (se estiver acessando pela URL virtual do app default) OU simplesmente abra o arquivo local da pasta `frontend/index.html` em seu navegador web.
 2. **Faça o Upload**: Arraste ou selecione seu fluxograma/diagrama de Arquitetura de Software.
 3. **Anexe as Regras (Diferencial)**: Envie o JSON do Metamodelo da empresa clicando no botão no canto direito ou deixe em branco se não possuir!
 4. Clique em enviar. A Visão computacional escaneará em instantes as bounding boxes e a LLM formulará e imprimirá o **Relatório STRIDE**.
 
 ## 🎥 Entregáveis Finais
 
-*   **Link do Github do projeto**: **`https://github.com/Yuriferr/Hackathon-IA-para-Devs.git`**
+*   **Link do Github do projeto**: **[Hackathon-IA-para-Devs](https://github.com/Yuriferr/Hackathon-IA-para-Devs.git)**
 *   **Documentação**: Você está lendo nela! Todos os passos de solução propostos foram sanados e organizados nas ramificações `/backend`, `/front` e `/ml`.
 *   **Vídeo do Pitch (até 15min)**: [Inserir o Link no YouTube/Drive do Pitch final]
