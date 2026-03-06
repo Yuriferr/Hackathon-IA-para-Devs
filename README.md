@@ -166,4 +166,4 @@ Com a API rodando com sucesso no Passo 1:
 
 *   **Link do Github do projeto**: **[Hackathon-IA-para-Devs](https://github.com/Yuriferr/Hackathon-IA-para-Devs.git)**
 *   **Documentação**: Você está lendo nela! Todos os passos de solução propostos foram sanados e organizados nas ramificações `/backend`, `/front` e `/ml`.
-*   **Vídeo do Pitch (até 15min)**: [Inserir o Link no YouTube/Drive do Pitch final]
+*   **Vídeo do Pitch (até 15min)**: [Link no YouTube Pitch final](https://www.youtube.com/watch?v=x8FACPHMVg4)
