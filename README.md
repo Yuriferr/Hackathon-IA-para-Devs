@@ -59,6 +59,10 @@ Este é o ambiente principal para inicializar o MVP e a Interface Frontend.
    ```bash
    ollama run gemini-3-flash-preview
    ```
+   OU
+   ```bash
+   ollama serve
+   ```
 
 5. **Iniciando a API:**
    O projeto já está padronizado para utilizar o modelo `gemini-3-flash-preview`. Inicie a aplicação utilizando o comando:
